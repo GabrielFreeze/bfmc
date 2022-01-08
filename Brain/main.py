@@ -57,11 +57,13 @@ allProcesses = list()
 if enableStream:
     camStR, camStS = Pipe(duplex = False)           # camera  ->  streamer
 
+    #I want: camera -> opencv processing -> streamer
+
     if enableCameraSpoof:
         camSpoofer = CameraSpooferProcess([],[camStS],'vid')
         allProcesses.append(camSpoofer)
 
-    else:
+    else: 
         camProc = CameraProcess([],[camStS])
         allProcesses.append(camProc)
 

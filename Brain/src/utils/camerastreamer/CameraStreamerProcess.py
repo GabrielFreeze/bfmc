@@ -108,11 +108,26 @@ class CameraStreamerProcess(WorkerProcess):
 
         while True:
             try:
+                #Image is the frame from the camera
                 stamps, image = inP.recv()
+
+
+                #Altering the frame from the raspberry pi before sending to PC
+                font      = cv2.FONT_HERSHEY_SIMPLEX
+                pos       = (0,0)
+                fontScale = 1
+                fontColor = (255,255,255)
+                thickness = 1
+                lineType  = 2
+
+                cv2.putText(image,'Hello World!',
+                            pos, 
+                            font, fontScale, fontColor,
+                            thickness,lineType)
                  
                 result, image = cv2.imencode('.jpg', image, encode_param)
-                data   =  image.tobytes()
-                size   =  len(data)
+                data = image.tobytes()
+                size = len(data)
 
                 self.connection.write(struct.pack("<L",size))
                 self.connection.write(data)

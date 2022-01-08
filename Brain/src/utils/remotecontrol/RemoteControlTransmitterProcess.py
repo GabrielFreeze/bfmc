@@ -39,7 +39,7 @@ from src.templates.workerprocess                        import WorkerProcess
 class RemoteControlTransmitterProcess(Thread):
     # ===================================== INIT==========================================
     def __init__(self,  inPs = [], outPs = []):
-        """Run on the PC. It forwards the commans from the user via KeboardListenerThread to the RcBrainThread. 
+        """Run on the PC. It forwards the commands from the user via KeboardListenerThread to the RcBrainThread. 
         The RcBrainThread converts them into actual commands and sends them to the remote via a socket connection.
         
         """

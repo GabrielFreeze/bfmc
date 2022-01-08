@@ -35,6 +35,10 @@ from src.templates.threadwithstop import ThreadWithStop
 #================================ CAMERA PROCESS =========================================
 class CameraThread(ThreadWithStop):
     
+    #Don't change
+    w = 640 
+    h = 480
+
     #================================ CAMERA =============================================
     def __init__(self, outPs):
         """The purpose of this thread is to setup the camera parameters and send the result to the CameraProcess. 
@@ -77,7 +81,6 @@ class CameraThread(ThreadWithStop):
         if self.recordMode:
             self.camera.stop_recording()
      
-
     #================================ INIT CAMERA ========================================
     def _init_camera(self):
         """Init the PiCamera and its parameters
@@ -87,6 +90,7 @@ class CameraThread(ThreadWithStop):
         # the camera has to be imported here
         from picamera import PiCamera
 
+
         # camera
         self.camera = PiCamera()
 
@@ -94,13 +98,13 @@ class CameraThread(ThreadWithStop):
         self.camera.resolution      =   (1640,1232)
         self.camera.framerate       =   15
 
-        self.camera.brightness      =   50
-        self.camera.shutter_speed   =   1200
+        self.camera.brightness      =   65
+        self.camera.shutter_speed   =   100000
         self.camera.contrast        =   0
         self.camera.iso             =   0 # auto
         
 
-        self.imgSize                =   (640, 480)    # the actual image size
+        self.imgSize                =   (self.w,self.h)    # the actual image size
 
     # ===================================== GET STAMP ====================================
     def _get_timestamp(self):
@@ -117,6 +121,7 @@ class CameraThread(ThreadWithStop):
         processing(reshape) is done to the image format. 
         """
 
+
         while self._running:
             
             yield self._stream
@@ -125,7 +130,7 @@ class CameraThread(ThreadWithStop):
 
             # read and reshape from bytes to np.array
             data  = np.frombuffer(data, dtype=np.uint8)
-            data  = np.reshape(data, (480, 640, 3))
+            data  = np.reshape(data, (self.h, self.w, 3))
             stamp = time.time()
 
             # output image and time stamp
