@@ -30,6 +30,8 @@
 # SCRIPT USED FOR WIRING ALL COMPONENTS
 #========================================================================
 import sys
+
+
 sys.path.append('.')
 
 import time
@@ -44,6 +46,9 @@ from src.hardware.serialhandler.SerialHandlerProcess        import SerialHandler
 # utility imports
 from src.utils.camerastreamer.CameraStreamerProcess         import CameraStreamerProcess
 from src.utils.remotecontrol.RemoteControlReceiverProcess   import RemoteControlReceiverProcess
+from src.utils.processing.LaneDetectionProcess              import LaneDetectionProcess
+from src.utils.control.CommandGeneratorProcess              import CommandGeneratorProcess
+
 
 # =============================== CONFIG =================================================
 enableStream        =  True
@@ -53,31 +58,27 @@ enableRc            =  True
 # =============================== INITIALIZING PROCESSES =================================
 allProcesses = list()
 
-# =============================== HARDWARE ===============================================
-if enableStream:
-    camStR, camStS = Pipe(duplex = False)           # camera  ->  streamer
 
-    #I want: camera -> opencv processing -> streamer
+# =============================== CAMERA ===============================================
+if enableStream:
+    camR1, camS1 = Pipe(duplex = False)
+    # camR2, camS2 = Pipe(duplex = False)
+
 
     if enableCameraSpoof:
-        camSpoofer = CameraSpooferProcess([],[camStS],'vid')
-        allProcesses.append(camSpoofer)
-
+        camProc = CameraSpooferProcess([],[camS1],'vid')
     else: 
-        camProc = CameraProcess([],[camStS])
-        allProcesses.append(camProc)
-
-    streamProc = CameraStreamerProcess([camStR], [])
-    allProcesses.append(streamProc)
+        camProc = CameraProcess([],[camS1])
+    allProcesses.append(camProc)
 
 
-# =============================== DATA ===================================================
-#LocSys client process
-# LocStR, LocStS = Pipe(duplex = False)           # LocSys  ->  brain
-# from data.localisationsystem.locsys import LocalisationSystemProcess
-# LocSysProc = LocalisationSystemProcess([], [LocStS])
-# allProcesses.append(LocSysProc)
+    laneR, laneS = Pipe(duplex = False)
+    laneProc = LaneDetectionProcess([camR1],[laneS])
+    allProcesses.append(laneProc)
 
+
+    # streamProc = CameraStreamerProcess([camR1], [])
+    # allProcesses.append(streamProc)
 
 
 # =============================== CONTROL =================================================
@@ -88,7 +89,13 @@ if enableRc:
     shProc = SerialHandlerProcess([rcShR], [])
     allProcesses.append(shProc)
 
-    rcProc = RemoteControlReceiverProcess([],[rcShS])
+
+    #Remote Control from PC
+    # rcProc = RemoteControlReceiverProcess([],[rcShS])
+    # allProcesses.append(rcProc)
+
+    #Control based on camera information
+    rcProc = CommandGeneratorProcess([laneR],[rcShS])
     allProcesses.append(rcProc)
 
 

@@ -33,27 +33,29 @@ from threading       import Thread
 
 from src.templates.workerprocess import WorkerProcess
 
-class RemoteControlReceiverProcess(WorkerProcess):
+class CommandGeneratorProcess(WorkerProcess):
     # ===================================== INIT =========================================
     def __init__(self, inPs, outPs):
-        """Run on raspberry. It forwards the control messages received from socket to the serial handler
+        """It receives lane detection information from LaneDetectionProcess,
+        and sends appropriate commands to SerialProcessHandler in order to stay within the lane.
         
         Parameters
         ------------
         inPs : list(Pipe)
-            List of input pipes (not used at the moment)
+            0: Radius of curvature of line
+            1: Position of vehicle relative to the middle of the lane
         outPs : list(Pipe) 
             List of output pipes (order does not matter)
         """
 
-        super(RemoteControlReceiverProcess,self).__init__( inPs, outPs)
+        super(CommandGeneratorProcess,self).__init__( inPs, outPs)
 
     # ===================================== RUN ==========================================
     def run(self):
         """Apply the initializing methods and start the threads
         """
         self._init_socket()
-        super(RemoteControlReceiverProcess,self).run()
+        super(CommandGeneratorProcess,self).run()
 
     # ===================================== INIT SOCKET ==================================
     def _init_socket(self):
@@ -70,28 +72,40 @@ class RemoteControlReceiverProcess(WorkerProcess):
 
     # ===================================== INIT THREADS =================================
     def _init_threads(self):
-        """Initialize the read thread to transmite the received messages to other processes. 
+        """Initialize the send thread to transmit commands to other processes. 
         """
-        readTh = Thread(name='ReceiverCommandThread',target = self._read_stream, args = (self.outPs, ))
-        self.threads.append(readTh)
+        sendTh = Thread(name='CommandGeneratorThread',target = self._send_command, args = (self.inPs, self.outPs, ))
+        self.threads.append(sendTh)
 
     # ===================================== READ STREAM ==================================
-    def _read_stream(self, outPs):
-        """Receive the message and forwards them to the SerialHandlerProcess. 
+    def _send_command(self, inPs, outPs):
+        """"It receives lane detection information from LaneDetectionProcess,
+        and sends appropriate commands to SerialProcessHandler in order to stay within the lane.
         
         Parameters
-        ----------
-        outPs : list(Pipe)
-            List of the output pipes.
+        ------------
+        inPs : list(Pipe)
+            0: Radius of curvature of line
+            1: Position of vehicle relative to the middle of the lane
+        outPs : list(Pipe) 
+            List of output pipes (order does not matter)
         """
         try:
             while True:
-                
-                bts, addr = self.server_socket.recvfrom(1024)
+                #Receive lane detection information
+                radius,position = inPs[0].recv()
+                command = {}
 
-                bts     =  bts.decode()
-                command =  json.loads(bts)
-                
+                # print(f'Command Generator{radius},{position}')
+
+                #Generate appropriate command based on lane detection information
+                if radius == 1 and position == 1:
+                    command = {
+                        'action' : '2',
+                        'steerAngle' : float(20)
+                    }
+
+                #Send generated command to SerialHandlerProcess
                 for outP in outPs:
                     outP.send(command)
 

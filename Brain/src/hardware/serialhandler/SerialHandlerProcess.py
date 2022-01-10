@@ -55,6 +55,7 @@ class SerialHandlerProcess(WorkerProcess):
         
         # comm init       
         self.serialCom = serial.Serial(devFile,256000,timeout=0.1)
+        
         self.serialCom.flushInput()
         self.serialCom.flushOutput()
 
