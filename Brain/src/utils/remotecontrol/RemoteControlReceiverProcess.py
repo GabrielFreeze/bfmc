@@ -45,7 +45,7 @@ class RemoteControlReceiverProcess(WorkerProcess):
         outPs : list(Pipe) 
             List of output pipes (order does not matter)
         """
-
+        self.command = {}
         super(RemoteControlReceiverProcess,self).__init__( inPs, outPs)
 
     # ===================================== RUN ==========================================
@@ -87,13 +87,16 @@ class RemoteControlReceiverProcess(WorkerProcess):
         try:
             while True:
                 
-                bts, addr = self.server_socket.recvfrom(1024)
+                try:
+                    bts, addr = self.server_socket.recvfrom(1024)
 
-                bts     =  bts.decode()
-                command =  json.loads(bts)
-                
+                    bts     =  bts.decode()
+                    self.command =  json.loads(bts)
+                except Exception as f: print(f)
+
+                #If no command was currently received, send previously received command.
                 for outP in outPs:
-                    outP.send(command)
+                    outP.send(self.command)
 
         except Exception as e:
             print(e)

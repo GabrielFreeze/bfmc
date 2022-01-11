@@ -1,6 +1,10 @@
 import cv2
+import numpy as np
+
 from threading       import Thread
 from src.templates.workerprocess import WorkerProcess
+from src.utils.processing.LaneDetectionClass import Lane
+
 
 
 class LaneDetectionProcess(WorkerProcess):

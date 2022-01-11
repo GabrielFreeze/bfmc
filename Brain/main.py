@@ -36,7 +36,7 @@ sys.path.append('.')
 
 import time
 import signal
-from multiprocessing import Pipe, Process, Event 
+from multiprocessing import Pipe, Process, Event, Queue 
 
 # hardware imports
 from src.hardware.camera.cameraprocess                      import CameraProcess
@@ -62,13 +62,14 @@ allProcesses = list()
 # =============================== CAMERA ===============================================
 if enableStream:
     camR1, camS1 = Pipe(duplex = False)
-    # camR2, camS2 = Pipe(duplex = False)
+    camR2, camS2 = Pipe(duplex = False)
+    queue = Queue()
 
 
     if enableCameraSpoof:
-        camProc = CameraSpooferProcess([],[camS1],'vid')
+        camProc = CameraSpooferProcess([],[camS1, camS2],'vid')
     else: 
-        camProc = CameraProcess([],[camS1])
+        camProc = CameraProcess([],[camS1, camS2])
     allProcesses.append(camProc)
 
 
@@ -77,8 +78,8 @@ if enableStream:
     allProcesses.append(laneProc)
 
 
-    # streamProc = CameraStreamerProcess([camR1], [])
-    # allProcesses.append(streamProc)
+    streamProc = CameraStreamerProcess([camR2], [])
+    allProcesses.append(streamProc)
 
 
 # =============================== CONTROL =================================================

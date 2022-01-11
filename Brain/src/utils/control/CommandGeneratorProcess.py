@@ -47,7 +47,7 @@ class CommandGeneratorProcess(WorkerProcess):
         outPs : list(Pipe) 
             List of output pipes (order does not matter)
         """
-
+        self.command = {}
         super(CommandGeneratorProcess,self).__init__( inPs, outPs)
 
     # ===================================== RUN ==========================================
@@ -90,27 +90,30 @@ class CommandGeneratorProcess(WorkerProcess):
         outPs : list(Pipe) 
             List of output pipes (order does not matter)
         """
+        
         try:
             while True:
-                #Receive lane detection information
-                radius,position = inPs[0].recv()
-                command = {}
-
-                # print(f'Command Generator{radius},{position}')
-
-                #Generate appropriate command based on lane detection information
-                if radius == 1 and position == 1:
-                    command = {
-                        'action' : '2',
-                        'steerAngle' : float(20)
-                    }
+                #Receive lane detection information.
+                
+                
+                try:
+                    radius,position = inPs[0].recv()
+                    #Generate appropriate command based on lane detection information.
+                    if radius == 1 and position == 1:
+                        print('!')
+                        self.command = {
+                            'action' : '2',
+                            'steerAngle' : float(20)
+                        }   
+                except Exception as f: print(f)
+            
 
                 #Send generated command to SerialHandlerProcess
+                #If no command is received send the previously sent command.
                 for outP in outPs:
-                    outP.send(command)
+                    outP.send(self.command)
+        
+        except Exception as e: print(e)
 
-        except Exception as e:
-            print(e)
 
-        finally:
-            self.server_socket.close()
+        self.server_socket.close()

@@ -100,7 +100,7 @@ class CameraReceiverProcess(WorkerProcess):
                 # decode image
                 image_len = struct.unpack('<L', self.connection.read(struct.calcsize('<L')))[0]
                 bts = self.connection.read(image_len)
-
+                print('!!')
                 # ----------------------- read image -----------------------
                 image = np.frombuffer(bts, np.uint8)
                 image = cv2.imdecode(image, cv2.IMREAD_COLOR)
@@ -110,8 +110,8 @@ class CameraReceiverProcess(WorkerProcess):
                 # ----------------------- show images -------------------
                 cv2.imshow('Image', image) 
                 cv2.waitKey(1)
-        except:
-            pass
+        except Exception as e:
+            print(e)
         finally:
             self.connection.close()
             self.server_socket.close()
