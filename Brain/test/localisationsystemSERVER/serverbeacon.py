@@ -58,7 +58,7 @@ class ServerBeaconThread(Thread):
 			self.logger.info(self.name+' started')
 			
 			# Sending the message periodically
-			msg = bytes(str(self.serverConfig.carClientPort))
+			msg = bytes(str(self.serverConfig.carClientPort), encoding='utf-8')
 			while self.runningThread:
 				beacon.sendto( msg , (self.serverConfig.broadcast_ip, self.serverConfig.negotiation_port))
 				time.sleep(self.sleepDuration)

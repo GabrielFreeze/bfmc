@@ -68,7 +68,6 @@ class LocalisationSystem(Thread):
                 # connect to the server 
                 self.__subscriber.subscribe()
         
-    
     def listen(self):
         """ Listening the coordination of robot
         """
@@ -100,7 +99,7 @@ class LocalisationSystem(Thread):
         self.__position_listener.stop()
 
 if __name__ == '__main__':
-    LocalisationSystem = LocalisationSystem(4)
+    LocalisationSystem = LocalisationSystem(2)
     LocalisationSystem.start()
     
     time.sleep(5)

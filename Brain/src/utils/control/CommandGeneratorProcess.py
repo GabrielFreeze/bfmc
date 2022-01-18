@@ -104,7 +104,8 @@ class CommandGeneratorProcess(WorkerProcess):
                         self.command = {
                             'action' : '2',
                             'steerAngle' : float(20)
-                        }   
+                        }
+                    
                 except Exception as f: print(f)
             
 
