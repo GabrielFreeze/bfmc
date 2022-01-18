@@ -28,13 +28,13 @@
 
 import json
 import threading
-import SocketServer
+import socketserver
 import socket
 import time
 
 try:
-    from server.utils import load_private_key,sign_data
-    from server.complexencoder import ComplexEncoder
+    from utils import load_private_key,sign_data
+    from complexencoder import ComplexEncoder
 except ImportError:
     from utils import load_private_key,sign_data
     from complexencoder import ComplexEncoder
@@ -56,7 +56,7 @@ class CarClientServerThread(threading.Thread):
 
 
 
-class CarClientServer (SocketServer.ThreadingTCPServer,object):
+class CarClientServer (socketserver.ThreadingTCPServer,object):
     """ It has role to serve the car client with coordination of detected robots. It's a subclass of 'SocketServer.ThreadingTCPServer',
     so it creates a new thread for communicating the client. The server use a private key for authentication itself and has a dictionary named 
     '_carMap', which contains the last detected coordinate and time.stamp for reach car identification number. The identification number of car 
@@ -109,7 +109,7 @@ class CarClientServer (SocketServer.ThreadingTCPServer,object):
         self.isRunning = False
         super(CarClientServer,self).shutdown()
 
-class CarClientHandler(SocketServer.BaseRequestHandler):
+class CarClientHandler(socketserver.BaseRequestHandler):
     """CarClientHandler responds for a client. Firstly it requests a identification number of robot and the information related this id
     will be sent to client. After receiving the id of robot, it will send a message and a signature, which can help for authenticating the server.
     While the connection is alive and the process isn't stopped, the handler will send the last coordinate in each second, where the robot was detected.
@@ -122,25 +122,26 @@ class CarClientHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         # receiving car id from client 
-        data = str(self.request.recv(1024)) 
+        data = str(self.request.recv(1024).decode('UTF-8'))
         carId = int(data)
         
         # Authentication
         timestamp = time.time()
-        msg = "Conneted! " + str(timestamp).encode('utf-8')
-        signature = sign_data(self.server.private_key,msg)
-        
-        # Authentication of server        
-        self.request.sendall(msg)
+        msg_str = "Conneted! " + str(timestamp)
+        msg_bytes = msg_str.encode('utf-8')
+        signature = sign_data(self.server.private_key, msg_str)
+
+        # Authentication of se`rver        
+        self.request.sendall(msg_bytes)
         self.request.sendall(signature)
         time.sleep(0.1)
-        
+
         # receiving ok response from the client
-        msg = self.request.recv(4096)
-        self.server.logger.info(msg)
-        if msg == 'Authentication not ok':
+        msg_str = self.request.recv(4096)
+        self.server.logger.info(msg_str)
+        if msg_str == 'Authentication not ok':
             
-            raise Exception(msg)
+            raise Exception(msg_str)
         
         self.server.logger.info('Connecting with {}. CarId is {}'.format(self.client_address,carId))
         
