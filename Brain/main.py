@@ -30,7 +30,9 @@
 # SCRIPT USED FOR WIRING ALL COMPONENTS
 #========================================================================
 import sys
+import os
 
+dir_path = os.path.dirname(os.path.realpath(__file__))+'/'
 
 sys.path.append('.')
 
@@ -47,12 +49,13 @@ from src.hardware.serialhandler.SerialHandlerProcess        import SerialHandler
 from src.utils.camerastreamer.CameraStreamerProcess         import CameraStreamerProcess
 from src.utils.remotecontrol.RemoteControlReceiverProcess   import RemoteControlReceiverProcess
 from src.utils.processing.LaneDetectionProcess              import LaneDetectionProcess
+from src.utils.processing.LaneDetectionVis                  import LaneDetectionVis
 from src.utils.control.CommandGeneratorProcess              import CommandGeneratorProcess
 
 
 # =============================== CONFIG =================================================
 enableStream        =  True
-enableCameraSpoof   =  False 
+enableCameraSpoof   =  True 
 enableRc            =  True
 
 # =============================== INITIALIZING PROCESSES =================================
@@ -63,42 +66,44 @@ allProcesses = list()
 if enableStream:
     camR1, camS1 = Pipe(duplex = False)
     camR2, camS2 = Pipe(duplex = False)
-    queue = Queue()
 
 
     if enableCameraSpoof:
-        camProc = CameraSpooferProcess([],[camS1, camS2],'vid')
+        camProc = CameraSpooferProcess([],[camS2],dir_path+'camera-spoof-vids')
     else: 
         camProc = CameraProcess([],[camS1, camS2])
     allProcesses.append(camProc)
 
+    laneR1, laneS1 = Pipe(duplex = False)
+    laneR2, laneS2 = Pipe(duplex = False)
 
-    laneR, laneS = Pipe(duplex = False)
-    laneProc = LaneDetectionProcess([camR1],[laneS])
+    # laneProc = LaneDetectionProcess([camR1],[laneS1])
+    # allProcesses.append(laneProc)
+
+    # -------- Visualisation Purposes --------
+    laneProc = LaneDetectionVis([camR2],[laneS2])
     allProcesses.append(laneProc)
-
-
-    streamProc = CameraStreamerProcess([camR2], [])
+    streamProc = CameraStreamerProcess([laneR2], [])
     allProcesses.append(streamProc)
 
 
 # =============================== CONTROL =================================================
-if enableRc:
-    rcShR, rcShS   = Pipe(duplex = False)           # rc      ->  serial handler
 
-    # serial handler process
-    shProc = SerialHandlerProcess([rcShR], [])
-    allProcesses.append(shProc)
+rcShR, rcShS   = Pipe(duplex = False)           # rc      ->  serial handler
+
+#Control based on lane information
+# rcProc = CommandGeneratorProcess([laneR1],[rcShS])
+# allProcesses.append(rcProc)
 
 
-    #Remote Control from PC
-    # rcProc = RemoteControlReceiverProcess([],[rcShS])
-    # allProcesses.append(rcProc)
+#Remote Control from PC
+# rcProc = RemoteControlReceiverProcess([],[rcShS])
+# allProcesses.append(rcProc)
 
-    #Control based on camera information
-    rcProc = CommandGeneratorProcess([laneR],[rcShS])
-    allProcesses.append(rcProc)
 
+# Serial Handler Process
+# shProc = SerialHandlerProcess([rcShR], [])
+# allProcesses.append(shProc)
 
 # ===================================== START PROCESSES ==================================
 print("Starting the processes!",allProcesses)

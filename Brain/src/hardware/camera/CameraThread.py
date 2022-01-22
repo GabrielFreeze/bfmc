@@ -134,7 +134,7 @@ class CameraThread(ThreadWithStop):
             stamp = time.time()
 
             # output image and time stamp
-            # Note: The sending process can be blocked, when doesn't exist any consumer process and it reaches the limit size.
+            # Note: The sending process can be blocked, when there doesn't exist any consumer process and it reaches the limit size.
             for outP in self.outPs:
                 outP.send([[stamp], data])
 

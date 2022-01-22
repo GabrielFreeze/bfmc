@@ -8,7 +8,7 @@ from src.utils.processing.LaneDetectionClass import Lane
 
 
 
-class LaneDetectionProcess(WorkerProcess):
+class LaneDetectionVis(WorkerProcess):
     lane = None
     # ===================================== INIT =========================================
     def __init__(self, inPs, outPs):
@@ -21,19 +21,19 @@ class LaneDetectionProcess(WorkerProcess):
         outPs : list(Pipe)
             List of output pipes (order does not matter)
         """
-        super(LaneDetectionProcess,self).__init__(inPs, outPs)
+        super(LaneDetectionVis,self).__init__(inPs, outPs)
 
 
     # ===================================== RUN ==========================================
     def run(self):
         """ start the threads"""
-        super(LaneDetectionProcess,self).run()
+        super(LaneDetectionVis,self).run()
 
     # ===================================== INIT THREADS =================================
     def _init_threads(self):
         """Initialize the read thread to receive the video.
         """
-        readTh = Thread(name = 'LaneDetectionProcess', target = self._process_stream, args = (self.inPs, self.outPs))
+        readTh = Thread(name = 'LaneDetectionVis', target = self._process_stream, args = (self.inPs, self.outPs))
         self.threads.append(readTh)
 
     def _process_stream(self, inPs, outPs):
@@ -54,10 +54,10 @@ class LaneDetectionProcess(WorkerProcess):
 
             stamps,image = inPs[0].recv()            
 
-            radius, dir = 0,0
             #--> Processing of the image occurs here <--
-            radius,dir = lane.run(image)            
+            # radius,dir = lane.run(image)  
+            output = lane.vis(image)          
 
             #Send
             for outP in outPs:
-                outP.send([radius,dir])
+                outP.send([[stamps],output])

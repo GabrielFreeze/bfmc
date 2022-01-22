@@ -59,6 +59,7 @@ class CameraSpooferProcess(WorkerProcess):
         
         self.videoDir = videoDir
         self.videos = self.open_files(self.videoDir, ext = ext)
+        print('------------------------- Spoofer Initialised -------------------------')
 
     
     # ===================================== INIT VIDEOS ==================================
@@ -85,7 +86,6 @@ class CameraSpooferProcess(WorkerProcess):
     def _init_threads(self):
         """Initialize the thread of the process. 
         """
-
         thPlay = Thread(name='VideoPlayerThread',target= self.play_video, args=(self.videos, ))
         self.threads.append(thPlay)
 
@@ -99,21 +99,23 @@ class CameraSpooferProcess(WorkerProcess):
         videos : list(string)
             The list of files with the videos. 
         """
+
         while True:
             for video in videos:
-                cap         =   cv2.VideoCapture(video)
+                cap = cv2.VideoCapture(video)
                 
                 while True:
                     ret, frame = cap.read()
                     stamp = time.time()
+
                     if ret: 
                         frame = cv2.resize(frame, self.videoSize)
-                        
+                        #Make sure that every output pipe has a consumer process, otherwise p.send() blocks the process from continuing.
                         for p in self.outPs:
-                            p.send([[stamp], frame])
-                               
+                            p.send([[stamp], frame]) 
                     else:
                         break
+
 
                 cap.release()
 

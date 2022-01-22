@@ -95,16 +95,19 @@ class CommandGeneratorProcess(WorkerProcess):
             while True:
                 #Receive lane detection information.
                 
-                
                 try:
-                    radius,position = inPs[0].recv()
-                    #Generate appropriate command based on lane detection information.
-                    if radius == 1 and position == 1:
-                        print('!')
-                        self.command = {
-                            'action' : '2',
-                            'steerAngle' : float(20)
-                        }
+                    radius,dir = inPs[0].recv()
+                    
+                    print(f'{dir}: {radius}')
+                    if radius > 100: radius = 100
+                    
+                    angle = 20 - radius * (20/100)
+
+                    self.command = {
+                        'action': '2', #2 -> Steer command
+                        'steerAngle': [1,-1][dir] * float(angle)
+                    }
+                    
                     
                 except Exception as f: print(f)
             
