@@ -90,33 +90,43 @@ class CommandGeneratorProcess(WorkerProcess):
         outPs : list(Pipe) 
             List of output pipes (order does not matter)
         """
-        
+        self.command = {
+            'action' : '4',
+            'activate' : True
+        }
+
+        for outP in outPs:
+            outP.send(self.command)
+
+        inc = 1
         try:
             while True:
                 #Receive lane detection information.
-                
                 try:
-                    radius,dir = inPs[0].recv()
+                    offset,dir = inPs[0].recv()
                     
-                    print(f'{dir}: {radius}')
-                    if radius > 100: radius = 100
+                    # print(f'{dir}: {offset}')
+                    # if offset > 100: offset = 100
                     
-                    angle = 20 - radius * (20/100)
+                    # angle = 20 - offset * (20/100)
 
+                    # self.command = {
+                    #     'action': '2', #2 -> Steer command
+                    #     'steerAngle': [1,-1][dir] * float(angle)
+                    # }
                     self.command = {
-                        'action': '2', #2 -> Steer command
-                        'steerAngle': [1,-1][dir] * float(angle)
+                        'action': '1',
+                        'speed': float(inc)
                     }
-                    
-                    
+                    print(inc)
                 except Exception as f: print(f)
-            
+                
+                
 
                 #Send generated command to SerialHandlerProcess
                 #If no command is received send the previously sent command.
                 for outP in outPs:
                     outP.send(self.command)
-        
         except Exception as e: print(e)
 
 

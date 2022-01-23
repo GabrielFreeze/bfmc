@@ -21,6 +21,8 @@ class Lane:
         self.wrp_x1 = self.width/2 - self.width/10
         self.wrp_x2 = self.width/2 + self.width/10
 
+        self.warp_cut = 0.5
+
 
         self.min_lane_pts = 175         #Minimum Number of Points a detected lane line should contain.
                                         #Less than that, then it is considered noise.
@@ -268,7 +270,7 @@ class Lane:
 
     # Create perspective image transformation matrices
     def create_m(self, ):
-        src = np.float32([[0, self.height],[self.width,self.height],[0,0.625*self.height],[self.width,0.625*self.height]])
+        src = np.float32([[0, self.height],[self.width,self.height],[0,self.warp_cut*self.height],[self.width,self.warp_cut*self.height]])
         dst = np.float32([[self.wrp_x1,self.height],[self.wrp_x2,self.height],[0,0],[self.width,0]])
         M = cv2.getPerspectiveTransform(src, dst)
         Minv = cv2.getPerspectiveTransform(dst, src)
@@ -329,10 +331,21 @@ class Lane:
     def px_to_m(self, px): # Conver ofset in pixels in x axis into m
         return self.xm_in_px*px
 
-    # Calculate offset from the lane center
+
     def lane_offset(self, left, right):
-        offset = self.width/2.0-(self.pol_calc(left, 1.0) + self.pol_calc(right, 1.0))/2.0
-        return self.px_to_m(offset)
+        midY = self.width/2
+        l_dist, r_dist = 0,0
+
+        if left:  
+            l_avg  = np.mean(np.array([y for (_,y) in left], dtype=np.int32))
+            l_dist = abs(midY-l_avg)
+        if right: 
+            r_avg = np.mean(np.array([y for (_,y) in right],dtype=np.int32))
+            r_dist = abs(midY-r_avg)
+
+        if l_dist and r_dist:       return l_dist > r_dist, min(l_dist, r_dist)
+        elif l_dist and not r_dist: return True, l_dist
+        else:                       return False,r_dist
 
     # Calculate radius of curvature of a line
     def r_curv(self, pol, y):
@@ -390,7 +403,7 @@ class Lane:
         return np.polyfit(y, x_new, new_ord)
 
 
-    def run(self, frame_org):
+    def get_radius(self, frame_org):
 
         frame = self.set_gray(frame_org)
         frame = self.eq_hist(frame)
@@ -459,6 +472,59 @@ class Lane:
             print(str(e))
             return (0,False)
 
+
+    def get_offset(self, frame_org):
+        frame = self.set_gray(frame_org)
+        frame = self.eq_hist(frame)
+
+        frame = self.bin_thresh(frame,param1=224,param2=255)
+
+        warped_frame = self.get_roi(frame)
+        warped_frame = self.transform(warped_frame, self.M)
+    
+        frame2 = frame_org.copy()
+        frame2 = self.transform(frame2, self.M)
+        frame2 = cv2.rotate(frame2,cv2.ROTATE_90_CLOCKWISE)
+    
+
+        warped_frame = self.remove_horizontal(warped_frame,
+                                            1/100,
+                                            10)
+
+        canny_edges = self.canny_edge(warped_frame, param1=50, param2=200)
+
+        #Rotate Image
+        rotated_canny_edges = cv2.rotate(canny_edges, cv2.ROTATE_90_CLOCKWISE)
+    
+        left,right = self.get_lanes(rotated_canny_edges)
+        left_curve,right_curve = [],[]
+        left_f,right_f = [],[]
+        offset,dir = 0,False
+
+        try:
+
+            std_dev = 1.6
+
+            if left:
+                left_f = self.filter_points(left,std_dev)
+                # if left_f: 
+                #     left_curve = self.fit_curve(left_f)
+                    
+            if right:
+                right_f = self.filter_points(right,std_dev)
+                # if right_f:
+                #     right_curve = self.fit_curve(right_f)
+            
+            
+            dir, offset = self.lane_offset(left_f,right_f)
+            lor = ['LEFT','RIGHT'][dir]
+
+            return offset,dir
+            
+                
+        except Exception as e: 
+            print(str(e))
+            return (0,False)
 
     def vis(self, frame_org):
         frame = self.set_gray(frame_org)

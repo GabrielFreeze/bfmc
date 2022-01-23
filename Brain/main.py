@@ -69,7 +69,7 @@ if enableStream:
 
 
     if enableCameraSpoof:
-        camProc = CameraSpooferProcess([],[camS2],dir_path+'camera-spoof-vids')
+        camProc = CameraSpooferProcess([],[camS1],dir_path+'camera-spoof-vids')
     else: 
         camProc = CameraProcess([],[camS1, camS2])
     allProcesses.append(camProc)
@@ -77,14 +77,14 @@ if enableStream:
     laneR1, laneS1 = Pipe(duplex = False)
     laneR2, laneS2 = Pipe(duplex = False)
 
-    # laneProc = LaneDetectionProcess([camR1],[laneS1])
-    # allProcesses.append(laneProc)
+    laneProc = LaneDetectionProcess([camR1],[laneS1])
+    allProcesses.append(laneProc)
 
     # -------- Visualisation Purposes --------
-    laneProc = LaneDetectionVis([camR2],[laneS2])
-    allProcesses.append(laneProc)
-    streamProc = CameraStreamerProcess([laneR2], [])
-    allProcesses.append(streamProc)
+    # laneProc = LaneDetectionVis([camR2],[laneS2])
+    # allProcesses.append(laneProc)
+    # streamProc = CameraStreamerProcess([laneR2], [])
+    # allProcesses.append(streamProc)
 
 
 # =============================== CONTROL =================================================
@@ -92,8 +92,8 @@ if enableStream:
 rcShR, rcShS   = Pipe(duplex = False)           # rc      ->  serial handler
 
 #Control based on lane information
-# rcProc = CommandGeneratorProcess([laneR1],[rcShS])
-# allProcesses.append(rcProc)
+rcProc = CommandGeneratorProcess([laneR1],[rcShS])
+allProcesses.append(rcProc)
 
 
 #Remote Control from PC
@@ -102,8 +102,8 @@ rcShR, rcShS   = Pipe(duplex = False)           # rc      ->  serial handler
 
 
 # Serial Handler Process
-# shProc = SerialHandlerProcess([rcShR], [])
-# allProcesses.append(shProc)
+shProc = SerialHandlerProcess([rcShR], [])
+allProcesses.append(shProc)
 
 # ===================================== START PROCESSES ==================================
 print("Starting the processes!",allProcesses)
