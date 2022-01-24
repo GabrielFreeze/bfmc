@@ -28,6 +28,7 @@
 
 import json
 import socket
+import time
 
 from threading       import Thread
 
@@ -90,6 +91,16 @@ class CommandGeneratorProcess(WorkerProcess):
         outPs : list(Pipe) 
             List of output pipes (order does not matter)
         """
+
+        def send(cmds): #Send a sequence of commands
+            for cmd in cmds:
+                if cmd == {}: continue
+                for outP in outPs:
+                    outP.send(cmd)
+
+
+
+
         self.command = {
             'action' : '4',
             'activate' : True
@@ -97,8 +108,10 @@ class CommandGeneratorProcess(WorkerProcess):
 
         for outP in outPs:
             outP.send(self.command)
-
-        inc = 1
+        
+        speed = 0.2
+        angle = 10
+        start = time.time()
         try:
             while True:
                 #Receive lane detection information.
@@ -114,19 +127,27 @@ class CommandGeneratorProcess(WorkerProcess):
                     #     'action': '2', #2 -> Steer command
                     #     'steerAngle': [1,-1][dir] * float(angle)
                     # }
-                    self.command = {
-                        'action': '1',
-                        'speed': float(inc)
-                    }
-                    print(inc)
-                except Exception as f: print(f)
-                
-                
 
-                #Send generated command to SerialHandlerProcess
-                #If no command is received send the previously sent command.
-                for outP in outPs:
-                    outP.send(self.command)
+
+                    if time.time() - start > 5:
+
+                        drive = {'action':'1',
+                                 'speed': float(0)}
+                        steer = {'action':'2',
+                                 'steerAngle': float(5)}
+                    else:
+                        drive = {'action':'1',
+                                 'speed': float(speed)}
+                        steer = {'action':'2',
+                                 'steerAngle': float(0)}
+
+
+                    send([drive,steer])
+
+
+                except Exception as f: print(f)
+                           
+
         except Exception as e: print(e)
 
 
