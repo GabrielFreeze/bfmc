@@ -7,7 +7,7 @@ import copy
 dir_path = os.path.dirname(os.path.realpath(__file__))+'/'
 
 class Lane:
-    def __init__(self, width, height, x_scl=0.3, y_scl=0.67):
+    def __init__(self, width, height, x_scl=0.7, y_scl=0.49):
         self.width = width
         self.height = height
 
@@ -21,7 +21,7 @@ class Lane:
         self.wrp_x1 = self.width/2 - self.width/10
         self.wrp_x2 = self.width/2 + self.width/10
 
-        self.warp_cut = 0.5
+        self.warp_cut = 0.44
 
 
         self.min_lane_pts = 175         #Minimum Number of Points a detected lane line should contain.
@@ -66,8 +66,8 @@ class Lane:
     def eq_hist(self, img): # Histogram normalization
         return cv2.equalizeHist(img)
 
-    def bin_thresh(self, img, param1=195, param2=255):
-        _,frame = cv2.threshold(img,param1,param2,cv2.THRESH_BINARY)
+    def bin_thresh(self, img, param1=225, param2=255):
+        _,frame = cv2.threshold(img,param1,param2,cv2.THRESH_BINARY_INV)
         return frame
 
     def canny_edge(self, img, param1=0, param2=255):
@@ -406,9 +406,9 @@ class Lane:
     def get_radius(self, frame_org):
 
         frame = self.set_gray(frame_org)
-        frame = self.eq_hist(frame)
+        # frame = self.eq_hist(frame)
 
-        frame = self.bin_thresh(frame,param1=224,param2=255)
+        frame = self.bin_thresh(frame,param1=170,param2=255)
 
         warped_frame = self.get_roi(frame)
         warped_frame = self.transform(warped_frame, self.M)
@@ -470,7 +470,7 @@ class Lane:
                 
         except Exception as e: 
             print(str(e))
-            return (0,False)
+            return (-1,False)
 
 
     def get_offset(self, frame_org):
@@ -528,9 +528,9 @@ class Lane:
 
     def vis(self, frame_org):
         frame = self.set_gray(frame_org)
-        frame = self.eq_hist(frame)
+        # frame = self.eq_hist(frame)
 
-        frame = self.bin_thresh(frame,param1=245,param2=255)
+        frame = self.bin_thresh(frame,param1=170,param2=255)
 
         warped_frame = self.get_roi(frame)
         warped_frame = self.transform(warped_frame, self.M)
@@ -540,17 +540,17 @@ class Lane:
         frame2 = cv2.rotate(frame2,cv2.ROTATE_90_CLOCKWISE)
     
 
-        warped_frame = self.remove_horizontal(warped_frame,
-                                            1/100,
-                                            10)
+        # warped_frame = self.remove_horizontal(warped_frame,
+        #                                     1/100,
+        #                                     10)
 
         canny_edges = self.canny_edge(warped_frame, param1=50, param2=200)
 
+        left,right = [],[]
+        left_curve,right_curve = [],[]
         #Rotate Image
         rotated_canny_edges = cv2.rotate(canny_edges, cv2.ROTATE_90_CLOCKWISE)
-    
         left,right = self.get_lanes(rotated_canny_edges)
-        left_curve,right_curve = [],[]
 
 
         try:

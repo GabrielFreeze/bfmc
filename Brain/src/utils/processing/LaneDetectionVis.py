@@ -40,11 +40,12 @@ class LaneDetectionVis(WorkerProcess):
         """Read the image from input stream, process it 
            and send the lane detection information """
         
-        stamps,frame = inPs[0].recv()
+        stamps,image = inPs[0].recv()
+        # image = cv2.resize(image,(image.shape[1]//2,image.shape[0]//2),cv2.INTER_AREA)
 
         lane = None
 
-        try: lane = Lane(frame.shape[1],frame.shape[0])
+        try: lane = Lane(image.shape[1]//2,image.shape[0]//2)
         except Exception as e: print(str(e))
 
 
@@ -52,12 +53,23 @@ class LaneDetectionVis(WorkerProcess):
 
             #Receive
 
-            stamps,image = inPs[0].recv()            
 
             #--> Processing of the image occurs here <--
             # radius,dir = lane.run(image)  
-            output = lane.vis(image)          
+            # image = lane.set_gray(image)
+            # frame = lane.eq_hist(frame)
+
+            # image = lane.bin_thresh(image,param1=170,param2=255)
+
+            # frame = lane.get_roi(frame)
+            # frame = lane.transform(frame, lane.M)
 
             #Send
+            image = cv2.resize(image,(image.shape[1]//2,image.shape[0]//2),cv2.INTER_AREA)   
+            image = lane.vis(image)
+            image = cv2.resize(image,(image.shape[1]*2,image.shape[0]*2),cv2.INTER_AREA)
+
             for outP in outPs:
-                outP.send([[stamps],output])
+                outP.send([[stamps],image])
+
+            stamps,image = inPs[0].recv()       

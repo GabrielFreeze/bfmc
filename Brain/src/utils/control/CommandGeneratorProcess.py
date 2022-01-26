@@ -108,41 +108,55 @@ class CommandGeneratorProcess(WorkerProcess):
 
         for outP in outPs:
             outP.send(self.command)
-        
-        speed = 0.2
+
+
+        speed = 0.1
         angle = 10
+        inc = -15.0
         start = time.time()
+        drive,steer = {},{}
+
         try:
             while True:
                 #Receive lane detection information.
                 try:
-                    offset,dir = inPs[0].recv()
+                    x,dir = inPs[0].recv()
                     
-                    # print(f'{dir}: {offset}')
-                    # if offset > 100: offset = 100
-                    
-                    # angle = 20 - offset * (20/100)
+                    if x > 50: x = 50
 
-                    # self.command = {
-                    #     'action': '2', #2 -> Steer command
-                    #     'steerAngle': [1,-1][dir] * float(angle)
-                    # }
+                    angle = 20 - x*(20/50)
 
 
-                    if time.time() - start > 5:
-
+                    if angle < 0:
                         drive = {'action':'1',
-                                 'speed': float(0)}
+                                 'speed': 0.0}
                         steer = {'action':'2',
-                                 'steerAngle': float(5)}
+                                 'steerAngle': 0.0}
                     else:
                         drive = {'action':'1',
-                                 'speed': float(speed)}
+                                 'speed': 0.06}
+                        steer = {
+                            'action': '2',
+                            'steerAngle': [-1,1][dir] * float(angle)
+                        }
+                    v = ['LEFT','RIGHT'][dir]
+                    print(f'{x} -> {v}: {angle}')
+
+
+                    if time.time() - start > 20:
+                        print('Time Limit Reached')
+                        drive = {'action':'1',
+                                 'speed': 0.0}
                         steer = {'action':'2',
-                                 'steerAngle': float(0)}
-
-
-                    send([drive,steer])
+                                 'steerAngle': 0.0}
+                    
+                    # drive = {'action':'1',
+                    #         'speed': 0.8}
+                    # steer = {'action':'2',
+                    #          'steerAngle': inc}
+                    
+                    # send([drive,steer])
+                    
 
 
                 except Exception as f: print(f)

@@ -55,7 +55,7 @@ from src.utils.control.CommandGeneratorProcess              import CommandGenera
 
 # =============================== CONFIG =================================================
 enableStream        =  True
-enableCameraSpoof   =  True 
+enableCameraSpoof   =  False
 enableRc            =  True
 
 # =============================== INITIALIZING PROCESSES =================================
@@ -71,20 +71,20 @@ if enableStream:
     if enableCameraSpoof:
         camProc = CameraSpooferProcess([],[camS1],dir_path+'camera-spoof-vids')
     else: 
-        camProc = CameraProcess([],[camS1, camS2])
+        camProc = CameraProcess([],[camS2])
     allProcesses.append(camProc)
 
     laneR1, laneS1 = Pipe(duplex = False)
     laneR2, laneS2 = Pipe(duplex = False)
 
-    laneProc = LaneDetectionProcess([camR1],[laneS1])
-    allProcesses.append(laneProc)
+    # laneProc = LaneDetectionProcess([camR1],[laneS1])
+    # allProcesses.append(laneProc)
 
     # -------- Visualisation Purposes --------
-    # laneProc = LaneDetectionVis([camR2],[laneS2])
-    # allProcesses.append(laneProc)
-    # streamProc = CameraStreamerProcess([laneR2], [])
-    # allProcesses.append(streamProc)
+    laneProc = LaneDetectionVis([camR2],[laneS2])
+    allProcesses.append(laneProc)
+    streamProc = CameraStreamerProcess([laneR2], [])
+    allProcesses.append(streamProc)
 
 
 # =============================== CONTROL =================================================
