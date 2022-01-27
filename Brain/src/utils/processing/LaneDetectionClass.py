@@ -7,7 +7,7 @@ import copy
 dir_path = os.path.dirname(os.path.realpath(__file__))+'/'
 
 class Lane:
-    def __init__(self, width, height, x_scl=0.7, y_scl=0.49):
+    def __init__(self, width, height, x_scl=0.16, y_scl=0.49):
         self.width = width
         self.height = height
 
@@ -21,7 +21,7 @@ class Lane:
         self.wrp_x1 = self.width/2 - self.width/10
         self.wrp_x2 = self.width/2 + self.width/10
 
-        self.warp_cut = 0.44
+        self.warp_cut = 0.27
 
 
         self.min_lane_pts = 175         #Minimum Number of Points a detected lane line should contain.
@@ -66,12 +66,27 @@ class Lane:
     def eq_hist(self, img): # Histogram normalization
         return cv2.equalizeHist(img)
 
-    def bin_thresh(self, img, param1=225, param2=255):
-        _,frame = cv2.threshold(img,param1,param2,cv2.THRESH_BINARY_INV)
+    def bin_thresh(self, img, p=101,c=30):
+        frame = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,p,c)
+        # _,frame = cv2.threshold(img,param1,param2,cv2.THRESH_BINARY_INV)
         return frame
 
     def canny_edge(self, img, param1=0, param2=255):
         return cv2.Canny(img, param1, param2, 1)
+
+
+    def block_front(self,img):
+        a = (0.00*self.width,      1.00*self.height)
+        b = (0.10*self.width,      0.75*self.height)
+        c = (0.90*self.width,      0.75*self.height)
+        d = (1.00*self.width,      1.00*self.height)
+
+        mask=np.zeros_like(img)
+        mask_vertices = np.array([[a,b,c,d]], dtype=np.int32)
+
+        cv2.fillPoly(mask, mask_vertices, 255)
+        _,mask = cv2.threshold(mask,0,255,cv2.THRESH_BINARY_INV)
+        return cv2.bitwise_and(img, mask)
 
     def get_lanes(self, edges):
         '''
@@ -408,7 +423,7 @@ class Lane:
         frame = self.set_gray(frame_org)
         # frame = self.eq_hist(frame)
 
-        frame = self.bin_thresh(frame,param1=170,param2=255)
+        frame = self.bin_thresh(frame)
 
         warped_frame = self.get_roi(frame)
         warped_frame = self.transform(warped_frame, self.M)
@@ -477,7 +492,7 @@ class Lane:
         frame = self.set_gray(frame_org)
         frame = self.eq_hist(frame)
 
-        frame = self.bin_thresh(frame,param1=224,param2=255)
+        frame = self.bin_thresh(frame)
 
         warped_frame = self.get_roi(frame)
         warped_frame = self.transform(warped_frame, self.M)
@@ -530,7 +545,8 @@ class Lane:
         frame = self.set_gray(frame_org)
         # frame = self.eq_hist(frame)
 
-        frame = self.bin_thresh(frame,param1=170,param2=255)
+        frame = self.bin_thresh(frame)
+        frame = self.block_front(frame)
 
         warped_frame = self.get_roi(frame)
         warped_frame = self.transform(warped_frame, self.M)

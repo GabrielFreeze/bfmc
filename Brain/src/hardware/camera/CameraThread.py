@@ -98,7 +98,7 @@ class CameraThread(ThreadWithStop):
         self.camera.resolution      =   (1640,1232)
         self.camera.framerate       =   15
 
-        self.camera.brightness      =   10
+        self.camera.brightness      =   25
         self.camera.shutter_speed   =   0
         self.camera.contrast        =   100
         self.camera.iso             =   0 # auto
@@ -108,7 +108,7 @@ class CameraThread(ThreadWithStop):
         g = self.camera.awb_gains
         self.camera.awb_mode = 'off'
         self.camera.awb_gains = g
-        
+        time.sleep(2)        
 
         self.imgSize                =   (self.w,self.h)    # the actual image size
 
