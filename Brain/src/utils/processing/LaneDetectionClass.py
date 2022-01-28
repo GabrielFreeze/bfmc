@@ -7,7 +7,7 @@ import copy
 dir_path = os.path.dirname(os.path.realpath(__file__))+'/'
 
 class Lane:
-    def __init__(self, width, height, x_scl=0.16, y_scl=0.49):
+    def __init__(self, width, height, x_scl=0.07, y_scl=0.49):
         self.width = width
         self.height = height
 
@@ -21,7 +21,7 @@ class Lane:
         self.wrp_x1 = self.width/2 - self.width/10
         self.wrp_x2 = self.width/2 + self.width/10
 
-        self.warp_cut = 0.27
+        self.warp_cut = 0.35
 
 
         self.min_lane_pts = 175         #Minimum Number of Points a detected lane line should contain.
@@ -66,7 +66,7 @@ class Lane:
     def eq_hist(self, img): # Histogram normalization
         return cv2.equalizeHist(img)
 
-    def bin_thresh(self, img, p=101,c=30):
+    def bin_thresh(self, img, p=91,c=30):
         frame = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,p,c)
         # _,frame = cv2.threshold(img,param1,param2,cv2.THRESH_BINARY_INV)
         return frame
@@ -424,6 +424,7 @@ class Lane:
         # frame = self.eq_hist(frame)
 
         frame = self.bin_thresh(frame)
+        frame = self.block_front(frame)
 
         warped_frame = self.get_roi(frame)
         warped_frame = self.transform(warped_frame, self.M)
@@ -493,6 +494,7 @@ class Lane:
         frame = self.eq_hist(frame)
 
         frame = self.bin_thresh(frame)
+        frame = self.block_front(frame)
 
         warped_frame = self.get_roi(frame)
         warped_frame = self.transform(warped_frame, self.M)

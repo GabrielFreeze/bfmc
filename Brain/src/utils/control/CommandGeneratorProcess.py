@@ -115,16 +115,25 @@ class CommandGeneratorProcess(WorkerProcess):
         inc = -15.0
         start = time.time()
         drive,steer = {},{}
+        inputs = []
 
         try:
             while True:
                 #Receive lane detection information.
                 try:
-                    x,dir = inPs[0].recv()
-                    
-                    if x > 50: x = 50
+                    #Recieve 3 inputs
+                    # inputs = [inPs[0].recv() for _ in range(3)]
+                    x = inPs[0].recv()
+                    print(x)
+                    # x = sum(inputs)/len(inputs)
 
-                    angle = 20 - x*(20/50)
+                    if x > 50:  x = 50
+                    if x < -50: x = -50
+
+                    if x > 0:
+                        angle = 20 - x*(20/50)
+                    else:
+                        angle = x*(20/50) + 20
 
 
                     if angle < 0:
@@ -134,12 +143,14 @@ class CommandGeneratorProcess(WorkerProcess):
                                  'steerAngle': 0.0}
                     else:
                         drive = {'action':'1',
-                                 'speed': 0.06}
+                                 'speed': 0.08}
                         steer = {
                             'action': '2',
-                            'steerAngle': [-1,1][dir] * float(angle)
+                            'steerAngle': float(angle)
                         }
-                    v = ['LEFT','RIGHT'][dir]
+                    
+                    v = ['LEFT','RIGHT'][True if angle else False]
+                    if angle == 0: v = 'STRAIGHT'
                     print(f'{x} -> {v}: {angle}')
 
 

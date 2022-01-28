@@ -57,9 +57,14 @@ class LaneDetectionProcess(WorkerProcess):
             radius, dir = 0,0
 
             #--> Processing of the image occurs here <--
-            radius,dir = lane.get_radius(image)            
-            # offset,dir = lane.get_offset(image)
+            # radius,dir = lane.get_radius(image)            
+            radius,dir = lane.get_offset(image)
+
+
+            # F -> Left
+            # T -> Right
+            if not dir: radius *= -1
 
             #Send
             for outP in outPs:
-                outP.send([radius,dir])
+                outP.send(radius)

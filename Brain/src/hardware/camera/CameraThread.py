@@ -29,6 +29,7 @@
 import io
 import numpy as np
 import time
+import cv2
 
 from src.templates.threadwithstop import ThreadWithStop
 
@@ -104,10 +105,7 @@ class CameraThread(ThreadWithStop):
         self.camera.iso             =   0 # auto
         time.sleep(2)
         self.camera.shutter_speed = self.camera.exposure_speed
-        self.camera.exposure_mode = 'off'
-        g = self.camera.awb_gains
-        self.camera.awb_mode = 'off'
-        self.camera.awb_gains = g
+        self.camera.exposure_mode = 'auto'
         time.sleep(2)        
 
         self.imgSize                =   (self.w,self.h)    # the actual image size
@@ -138,6 +136,26 @@ class CameraThread(ThreadWithStop):
             data  = np.frombuffer(data, dtype=np.uint8)
             data  = np.reshape(data, (self.h, self.w, 3))
             stamp = time.time()
+            
+            gray = cv2.cvtColor(data,cv2.COLOR_RGB2GRAY)
+            brightness = np.mean(gray)
+            # print(brightness)
+            change = 180 - brightness
+
+            new = self.camera.brightness + (change*0.1)
+            if new > 100: new = 100
+            if new < 0:   new = 0
+            self.camera.brightness = int(new)
+            # print(f'Change: {change*0.1}, New: {new}')
+            #BRIGHT -> 207
+            #MIDDLE -> 150
+            #PISS_SHIT -> 60
+
+            # 60 = 41.67
+            # 100 = 25
+            # 150 = 16.67
+            # 207 = 12.079
+
 
             # output image and time stamp
             # Note: The sending process can be blocked, when there doesn't exist any consumer process and it reaches the limit size.
