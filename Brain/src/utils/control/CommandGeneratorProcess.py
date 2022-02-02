@@ -120,41 +120,53 @@ class CommandGeneratorProcess(WorkerProcess):
             while True:
                 #Receive lane detection information.
                 try:
+                    max_dist, min_dist = 100,30
 
                     # inputs = [inPs[0].recv() for _ in range(3)]
-                    x,dir = inPs[0].recv()
+                    l_dist,r_dist = inPs[0].recv()
                     # print(f'Input:{x}, {dir}')
 
-                    if dir == "Right": x *= -1
 
-                    # x = sum(inputs)/len(inputs)
+                    if l_dist and r_dist:
+                        if l_dist > max_dist: l_dist = max_dist
+                        if r_dist > max_dist: r_dist = max_dist
 
-                    if x > 50:  x = 50
-                    if x < -50: x = -50
+                        if l_dist < min_dist: l_dist = min_dist
+                        if r_dist < min_dist: r_dist = min_dist
                     
-                    angle = x * (20/50)
-                    
+                    elif l_dist and not r_dist:
+                        if l_dist > max_dist: l_dist = max_dist
+                        if l_dist < min_dist: l_dist = min_dist
+                        r_dist = max_dist
+                    elif r_dist and not l_dist:
+                        if r_dist > max_dist: r_dist = max_dist
+                        if r_dist < min_dist: r_dist = min_dist
+                        l_dist = max_dist
 
-                    if dir == "None": #No lanes were detected
+                    print(f'l_dist: {l_dist},r_dist: {r_dist}')
+                    x =  r_dist - l_dist
+
+                    print(f'x: {x}')
+                    angle = x * (20/(max_dist-min_dist))
+
+                    print(f'Angle: {angle}')
+
+                    if (l_dist,r_dist) == (0,0): #No lanes were detected
                         drive = {'action':'1',
                                  'speed': 0.00}
                         steer = {'action':'2',
                                  'steerAngle': 0.00}
                         angle = 0.00
 
-                    elif angle != prev_angle:
+                    else:
                             drive = {'action':'1',
-                                     'speed': 0.09}
+                                     'speed': 0.00}
                             steer = {'action':'2',
                                      'steerAngle': float(angle)}
-                    else: #If the angle is the same as the previous action, do not resend another steer command with the same angle
-                        drive = {'action':'1',
-                                 'speed': 0.09}
-                        steer = {}
-
                     
-                    print('\n')
-                    print(f'{x} -> {dir}: {angle}\n')
+
+                    dir = "LEFT" if angle > 0 else "RIGHT"
+                    # print(f'{x} -> {dir}: {angle}\n')
 
 
                     # if time.time() - start > 20:
@@ -170,7 +182,6 @@ class CommandGeneratorProcess(WorkerProcess):
                     #          'steerAngle': inc}
                     
                     send([drive,steer])
-                    prev_angle = angle
                     
 
 

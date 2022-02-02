@@ -24,7 +24,7 @@ class Lane:
         self.warp_cut = 0.35
 
 
-        self.min_lane_pts = 175         #Minimum Number of Points a detected lane line should contain.
+        self.min_lane_pts = 45          #Minimum Number of Points a detected lane line should contain.
                                         #Less than that, then it is considered noise.
         self.shift = 20                 #The estimated distance in px between the 2 lanes. Used for lane inference
         self.MAX_RADIUS = float('inf')  #Largest possible lane curve radius
@@ -103,8 +103,8 @@ class Lane:
             bottom_mostY = min(-pts[0])
 
             #Calculate horizontal line that seperates right and left lane
-            midY = (top_mostY + bottom_mostY)/2
-            # midY = -self.width/2
+            # midY = (top_mostY + bottom_mostY)/2
+            midY = -self.width/2
 
             top_ptsX = []
             top_ptsY = []
@@ -146,15 +146,20 @@ class Lane:
         returns a subset of pts such that any point's y coordinate's standard deviation that is not considered noise.
         '''
 
-        #If there aren't enough points, treat the detected points as noise.
-        if len(pts) < self.min_lane_pts:
-            return []
+        # print(f'Length of Original Points: {len(pts)}')
 
         #Filter top lines to remove outlier points (noise)
         pts_y = [y for (x,y) in pts]
         mean = np.mean(pts_y)
         std = np.std(pts_y)
-        return [(x,y) for (x,y) in pts if abs((y-mean)/std) < dev]
+        filtered = [(x,y) for (x,y) in pts if abs((y-mean)/std) < dev]
+
+        # print(f'Length of Filtered Points: {len(filtered)}')
+
+        #If there aren't enough points, treat the detected points as noise.
+        if len(filtered) < self.min_lane_pts:
+            return []
+        else: return filtered
 
     def fit_curve(self, pts, order=2):
         '''
@@ -349,10 +354,18 @@ class Lane:
 
     def lane_offset(self, left, right):
         midY = self.width/2
+        # midY = self.height/2
+        l_avg, r_avg = 0,0
         l_dist, r_dist = 0,0
 
+        lleft = len(left)
+        lright = len(right)
+
+        # print(f'Length of left lane: {lleft}')
+        # print(f'Length of right lane: {lright}')
+
         if not (left or right):
-            return "None",0
+            return 0,0
 
         if left:  
             l_avg  = np.mean(np.array([y for (_,y) in left], dtype=np.int32))
@@ -361,12 +374,16 @@ class Lane:
             r_avg = np.mean(np.array([y for (_,y) in right],dtype=np.int32))
             r_dist = abs(midY-r_avg)
 
+        # print(f'Average left lane y-coordinate: {l_avg}')
+        # print(f'Average right lane y-coordinate: {r_avg}')
+        # print(f'Middle y-coordinate: {midY}')
+
+
         print(f'Left: {l_dist}')
         print(f'Right: {r_dist}')
 
-        if l_dist and r_dist:       return ["Right","Left"][l_dist > r_dist], max(l_dist, r_dist)
-        elif l_dist and not r_dist: return "Right", l_dist*2
-        else:                       return "Left",  r_dist*2
+        return l_dist,r_dist
+
 
     # Calculate radius of curvature of a line
     def r_curv(self, pol, y):
@@ -497,8 +514,7 @@ class Lane:
 
     def get_offset(self, frame_org):
         frame = self.set_gray(frame_org)
-        frame = self.eq_hist(frame)
-
+        # frame = self.eq_hist(frame)
         frame = self.bin_thresh(frame)
         frame = self.block_front(frame)
 
@@ -516,38 +532,37 @@ class Lane:
 
         canny_edges = self.canny_edge(warped_frame, param1=50, param2=200)
 
+        left_curve,right_curve = [],[]
+        left_f,right_f = [],[]
+        
         #Rotate Image
         rotated_canny_edges = cv2.rotate(canny_edges, cv2.ROTATE_90_CLOCKWISE)
     
         left,right = self.get_lanes(rotated_canny_edges)
-        left_curve,right_curve = [],[]
-        left_f,right_f = [],[]
         offset,dir = 0,False
 
         try:
 
-            std_dev = 1.6
 
             if left:
-                left_f = self.filter_points(left,std_dev)
+                left_f = self.filter_points(left)
                 # if left_f: 
                 #     left_curve = self.fit_curve(left_f)
                     
             if right:
-                right_f = self.filter_points(right,std_dev)
+                right_f = self.filter_points(right)
                 # if right_f:
                 #     right_curve = self.fit_curve(right_f)
             
-            
-            dir, offset = self.lane_offset(left_f,right_f)
+            l_dist, r_dist = self.lane_offset(left_f,right_f)
             
 
-            return offset,dir
+            return l_dist, r_dist
             
                 
         except Exception as e: 
             print(str(e))
-            return (0,"None")
+            return (0,0)
 
     def vis(self, frame_org):
         frame = self.set_gray(frame_org)
@@ -578,16 +593,16 @@ class Lane:
 
 
         try:
-
+            left_f, right_f = [],[]
             std_dev = 1.6
 
             if left:
-                left_f = self.filter_points(left,std_dev)
+                left_f = self.filter_points(left)
                 if left_f: 
                     left_curve = self.fit_curve(left_f)
                     
             if right:
-                right_f = self.filter_points(right,std_dev)
+                right_f = self.filter_points(right)
                 if right_f:
                     right_curve = self.fit_curve(right_f)
             
@@ -604,7 +619,18 @@ class Lane:
                 pass
             
             frame2 = cv2.rotate(frame2,cv2.ROTATE_90_COUNTERCLOCKWISE)
+            cv2.line(frame2, (self.width//2, 0),(self.width//2, self.height), (0, 255, 0), 3) #Middle Point
             frame2 = self.transform(frame2, self.Minv)
+
+            # if left_f:
+            #     l_avg  = np.mean(np.array([y for (_,y) in left_f], dtype=np.int32))
+            #     cv2.line(frame2, (l_avg, 0),(l_avg, self.height), (255,0, 0), 3) #Left Lane Average
+            
+            # if right_f:
+            #     r_avg  = np.mean(np.array([y for (_,y) in right_f], dtype=np.int32))
+            #     cv2.line(frame2, (r_avg, 0),(r_avg, self.height), (0, 0, 255), 3) #Right Lane Average
+
+
             return frame2
                 
         except Exception as e: 

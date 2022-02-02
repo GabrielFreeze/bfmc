@@ -69,9 +69,9 @@ if enableStream:
 
 
     if enableCameraSpoof:
-        camProc = CameraSpooferProcess([],[camS1],dir_path+'camera-spoof-vids')
+        camProc = CameraSpooferProcess([],[camS1, camS2],dir_path+'camera-spoof-vids')
     else: 
-        camProc = CameraProcess([],[camS1,camS2])
+        camProc = CameraProcess([],[camS1, camS2])
     allProcesses.append(camProc)
 
     laneR1, laneS1 = Pipe(duplex = False)

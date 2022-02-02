@@ -54,11 +54,11 @@ class LaneDetectionProcess(WorkerProcess):
 
             stamps,image = inPs[0].recv()            
 
-            radius, dir = 0,0
+            l, r = 0,0
 
             #--> Processing of the image occurs here <--
             # radius,dir = lane.get_radius(image)            
-            radius,dir = lane.get_offset(image)
+            l,r = lane.get_offset(image)
 
 
             # F -> Left
@@ -67,4 +67,4 @@ class LaneDetectionProcess(WorkerProcess):
 
             #Send
             for outP in outPs:
-                outP.send([radius,dir])
+                outP.send([l,r])
