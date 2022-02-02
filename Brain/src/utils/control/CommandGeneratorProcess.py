@@ -99,8 +99,6 @@ class CommandGeneratorProcess(WorkerProcess):
                     outP.send(cmd)
 
 
-
-
         self.command = {
             'action' : '4',
             'activate' : True
@@ -111,7 +109,8 @@ class CommandGeneratorProcess(WorkerProcess):
 
 
         speed = 0.1
-        angle = 10
+        angle = 0
+        prev_angle = 0
         inc = -15.0
         start = time.time()
         drive,steer = {},{}
@@ -121,52 +120,57 @@ class CommandGeneratorProcess(WorkerProcess):
             while True:
                 #Receive lane detection information.
                 try:
-                    #Recieve 3 inputs
+
                     # inputs = [inPs[0].recv() for _ in range(3)]
-                    x = inPs[0].recv()
-                    print(x)
+                    x,dir = inPs[0].recv()
+                    # print(f'Input:{x}, {dir}')
+
+                    if dir == "Right": x *= -1
+
                     # x = sum(inputs)/len(inputs)
 
                     if x > 50:  x = 50
                     if x < -50: x = -50
-
-                    if x > 0:
-                        angle = 20 - x*(20/50)
-                    else:
-                        angle = x*(20/50) + 20
-
-
-                    if angle < 0:
-                        drive = {'action':'1',
-                                 'speed': 0.0}
-                        steer = {'action':'2',
-                                 'steerAngle': 0.0}
-                    else:
-                        drive = {'action':'1',
-                                 'speed': 0.08}
-                        steer = {
-                            'action': '2',
-                            'steerAngle': float(angle)
-                        }
                     
-                    v = ['LEFT','RIGHT'][True if angle else False]
-                    if angle == 0: v = 'STRAIGHT'
-                    print(f'{x} -> {v}: {angle}')
+                    angle = x * (20/50)
+                    
 
-
-                    if time.time() - start > 20:
-                        print('Time Limit Reached')
+                    if dir == "None": #No lanes were detected
                         drive = {'action':'1',
-                                 'speed': 0.0}
+                                 'speed': 0.00}
                         steer = {'action':'2',
-                                 'steerAngle': 0.0}
+                                 'steerAngle': 0.00}
+                        angle = 0.00
+
+                    elif angle != prev_angle:
+                            drive = {'action':'1',
+                                     'speed': 0.09}
+                            steer = {'action':'2',
+                                     'steerAngle': float(angle)}
+                    else: #If the angle is the same as the previous action, do not resend another steer command with the same angle
+                        drive = {'action':'1',
+                                 'speed': 0.09}
+                        steer = {}
+
+                    
+                    print('\n')
+                    print(f'{x} -> {dir}: {angle}\n')
+
+
+                    # if time.time() - start > 20:
+                    #     print('Time Limit Reached')
+                    #     drive = {'action':'1',
+                    #              'speed': 0.0}
+                    #     steer = {'action':'2',
+                    #              'steerAngle': 0.00}
                     
                     # drive = {'action':'1',
                     #         'speed': 0.8}
                     # steer = {'action':'2',
                     #          'steerAngle': inc}
                     
-                    # send([drive,steer])
+                    send([drive,steer])
+                    prev_angle = angle
                     
 
 

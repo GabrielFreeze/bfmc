@@ -63,8 +63,8 @@ class LaneDetectionProcess(WorkerProcess):
 
             # F -> Left
             # T -> Right
-            if not dir: radius *= -1
+            # if not dir: radius *= -1
 
             #Send
             for outP in outPs:
-                outP.send(radius)
+                outP.send([radius,dir])

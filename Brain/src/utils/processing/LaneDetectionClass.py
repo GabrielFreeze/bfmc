@@ -351,6 +351,9 @@ class Lane:
         midY = self.width/2
         l_dist, r_dist = 0,0
 
+        if not (left or right):
+            return "None",0
+
         if left:  
             l_avg  = np.mean(np.array([y for (_,y) in left], dtype=np.int32))
             l_dist = abs(midY-l_avg)
@@ -358,9 +361,12 @@ class Lane:
             r_avg = np.mean(np.array([y for (_,y) in right],dtype=np.int32))
             r_dist = abs(midY-r_avg)
 
-        if l_dist and r_dist:       return l_dist > r_dist, min(l_dist, r_dist)
-        elif l_dist and not r_dist: return True, l_dist
-        else:                       return False,r_dist
+        print(f'Left: {l_dist}')
+        print(f'Right: {r_dist}')
+
+        if l_dist and r_dist:       return ["Right","Left"][l_dist > r_dist], max(l_dist, r_dist)
+        elif l_dist and not r_dist: return "Right", l_dist*2
+        else:                       return "Left",  r_dist*2
 
     # Calculate radius of curvature of a line
     def r_curv(self, pol, y):
@@ -534,14 +540,14 @@ class Lane:
             
             
             dir, offset = self.lane_offset(left_f,right_f)
-            lor = ['LEFT','RIGHT'][dir]
+            
 
             return offset,dir
             
                 
         except Exception as e: 
             print(str(e))
-            return (0,False)
+            return (0,"None")
 
     def vis(self, frame_org):
         frame = self.set_gray(frame_org)
