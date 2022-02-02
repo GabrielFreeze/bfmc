@@ -69,7 +69,7 @@ class RcBrainThread:
         #----------------- CONSTANT VALUES --------------------
         #this values do not change
         self.parameterIncrement =   0.1
-        self.limit_configParam = RcBrainConfigParams(21.0, 30.0, 3.0, 4.0, 0.001, 0.001, 0.000001)
+        self.limit_configParam = RcBrainConfigParams(21.0, 30.0, 3.0, 1.0, 0.001, 0.001, 0.000001)
 
         self.startSpeed         =   9.0
         self.startSteerAngle    =   1.0

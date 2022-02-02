@@ -108,7 +108,8 @@ class CommandGeneratorProcess(WorkerProcess):
             outP.send(self.command)
 
 
-        speed = 0.1
+        speed = -1
+        prev_speed = -2
         angle = 0
         prev_angle = 0
         inc = -15.0
@@ -121,6 +122,7 @@ class CommandGeneratorProcess(WorkerProcess):
                 #Receive lane detection information.
                 try:
                     max_dist, min_dist = 100,30
+                    drive,steer = {},{}
 
                     # inputs = [inPs[0].recv() for _ in range(3)]
                     l_dist,r_dist = inPs[0].recv()
@@ -157,31 +159,33 @@ class CommandGeneratorProcess(WorkerProcess):
                         steer = {'action':'2',
                                  'steerAngle': 0.00}
                         angle = 0.00
+                        speed = 0.00
 
                     else:
+                            # if prev_speed != speed:
+                            speed = 0.0
                             drive = {'action':'1',
-                                     'speed': 0.00}
+                                    'speed': speed}
                             steer = {'action':'2',
                                      'steerAngle': float(angle)}
                     
 
-                    dir = "LEFT" if angle > 0 else "RIGHT"
-                    # print(f'{x} -> {dir}: {angle}\n')
+                    # dir = "LEFT" if angle > 0 else "RIGHT"
+                    # # print(f'{x} -> {dir}: {angle}\n')
 
 
-                    # if time.time() - start > 20:
+
+                    # if time.time() - start > 15:
                     #     print('Time Limit Reached')
                     #     drive = {'action':'1',
                     #              'speed': 0.0}
                     #     steer = {'action':'2',
                     #              'steerAngle': 0.00}
-                    
-                    # drive = {'action':'1',
-                    #         'speed': 0.8}
-                    # steer = {'action':'2',
-                    #          'steerAngle': inc}
+
                     
                     send([drive,steer])
+                    time.sleep(0.01)
+                    prev_speed = speed
                     
 
 

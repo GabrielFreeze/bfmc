@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import time
 
 from threading       import Thread
 from src.templates.workerprocess import WorkerProcess
@@ -76,5 +77,5 @@ class LaneDetectionVis(WorkerProcess):
 
             for outP in outPs:
                 outP.send([[stamps],image])
-
-            stamps,image = inPs[0].recv()       
+            time.sleep(0.02)
+            stamps,image = inPs[0].recv()
