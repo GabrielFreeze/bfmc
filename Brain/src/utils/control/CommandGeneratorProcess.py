@@ -163,7 +163,7 @@ class CommandGeneratorProcess(WorkerProcess):
 
                     else:
                             # if prev_speed != speed:
-                            speed = 0.0
+                            speed = 0.07
                             drive = {'action':'1',
                                     'speed': speed}
                             steer = {'action':'2',
