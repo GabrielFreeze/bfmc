@@ -11,6 +11,8 @@ class Lane:
         self.width = width
         self.height = height
 
+        # y_scl = 0.59
+
         a = (0.00*self.width,      1.00*self.height)
         b = (x_scl*self.width,     y_scl*self.height)
         c = ((1-x_scl)*self.width, y_scl*self.height)
@@ -22,9 +24,10 @@ class Lane:
         self.wrp_x2 = self.width/2 + self.width/10
 
         self.warp_cut = 0.35
+        self.min_dist_lanes = 25
 
 
-        self.min_lane_pts = 45          #Minimum Number of Points a detected lane line should contain.
+        self.min_lane_pts = 20          #Minimum Number of Points a detected lane line should contain.
                                         #Less than that, then it is considered noise.
         self.shift = 20                 #The estimated distance in px between the 2 lanes. Used for lane inference
         self.MAX_RADIUS = float('inf')  #Largest possible lane curve radius
@@ -74,6 +77,23 @@ class Lane:
     def canny_edge(self, img, param1=0, param2=255):
         return cv2.Canny(img, param1, param2, 1)
 
+    def lanes_overlap(self, left, right):
+        
+        #Calculate average point in left and right
+        lx = np.mean(np.array([x for (x,y) in left],dtype=np.int32))
+        ly = np.mean(np.array([y for (x,y) in left],dtype=np.int32))
+
+        rx = np.mean(np.array([x for (x,y) in right],dtype=np.int32))
+        ry = np.mean(np.array([y for (x,y) in right],dtype=np.int32))
+
+        #Calculate euclidian distance between average points
+        dist = math.sqrt((lx-rx)**2 + (ly-ry)**2)
+
+        # print(f'Average Distance between lanes: {dist}')
+
+
+        
+        return dist < self.min_dist_lanes
 
     def block_front(self,img):
         a = (0.00*self.width,      1.00*self.height)
@@ -122,7 +142,7 @@ class Lane:
                 else:
                     bottom_ptsX.append(x)
                     bottom_ptsY.append(y+edges.shape[0])
-            
+
             if len(top_ptsX) > self.min_lane_pts:
                 top = list(zip(top_ptsX,top_ptsY))
 
@@ -184,7 +204,7 @@ class Lane:
         y = [img.shape[0]-i for i in y_org]
         pts = np.array(list(zip(x,y)), np.int32)
 
-        return cv2.polylines(img, [pts], False, (0,0,255),10)
+        return cv2.polylines(img, [pts], False, (0,0,255),4)
 
     def infer_lane(self, pol, pts, other_lane):
         '''
@@ -526,9 +546,9 @@ class Lane:
         frame2 = cv2.rotate(frame2,cv2.ROTATE_90_CLOCKWISE)
     
 
-        warped_frame = self.remove_horizontal(warped_frame,
-                                            1/100,
-                                            10)
+        # warped_frame = self.remove_horizontal(warped_frame,
+        #                                     1/100,
+        #                                     10)
 
         canny_edges = self.canny_edge(warped_frame, param1=50, param2=200)
 
@@ -539,11 +559,10 @@ class Lane:
         rotated_canny_edges = cv2.rotate(canny_edges, cv2.ROTATE_90_CLOCKWISE)
     
         left,right = self.get_lanes(rotated_canny_edges)
-        offset,dir = 0,False
 
         try:
 
-
+            
             if left:
                 left_f = self.filter_points(left)
                 # if left_f: 
@@ -554,7 +573,41 @@ class Lane:
                 # if right_f:
                 #     right_curve = self.fit_curve(right_f)
             
-            l_dist, r_dist = self.lane_offset(left_f,right_f)
+            if self.lanes_overlap(left_f, right_f) == True:
+                #The detected lanes are incorrect
+                #Consider all lane points and see if the average point is on the left or right
+
+                all_pts = left_f + right_f
+                all_pts_f = self.filter_points(all_pts, dev=1)
+                midY = np.mean(np.array([y for (x,y) in all_pts_f],dtype=np.int32))
+
+                if midY > self.width//2:
+                    #Go to the RIGHT
+                    l_dist,r_dist = 7.5,25
+                else:
+                    #Go to the LEFT
+                    l_dist,r_dist = 25,7.5
+                
+
+
+            # if self.lanes_overlap(left_f, right_f) == True:
+            #     #The detected lanes are incorrect
+            #     #Calculate radius of curvature of all points
+            #     #Use radius to calculate angle of steering
+
+            #     all_pts = left_f + right_f
+            #     all_pts_f = self.filter_points(all_pts, dev=1)
+            #     c = self.fit_curve(all_pts_f)
+
+            #     radius, dir = self.lane_curv(c)
+            #     radius *= 10e-7
+            #     print(f'Using Radius: {round(radius,2)}')
+
+            #     if dir: l_dist,r_dist = 25,7.5 #LEFT
+            #     else:   l_dist,r_dist = 7.5,25 #RIGHT
+
+            else:
+                l_dist, r_dist = self.lane_offset(left_f,right_f)
             
 
             return l_dist, r_dist
@@ -599,27 +652,36 @@ class Lane:
             if left:
                 left_f = self.filter_points(left)
                 if left_f: 
-                    left_curve = self.fit_curve(left_f)
-                    
+                    left_curve = self.fit_curve(left_f)        
             if right:
                 right_f = self.filter_points(right)
                 if right_f:
                     right_curve = self.fit_curve(right_f)
             
+            if self.lanes_overlap(left_f, right_f) == True:
+                #The detected lanes are incorrect
+                #Calculate radius of curvature of all points
+                #Use radius to calculate angle of steering
 
-            if len(left_curve):
-                curve1, dir1 = self.lane_curv(left_curve)
-                frame2 = self.draw_curve(frame2, left_curve,  left_f)
-            if len(right_curve):
-                curve2, dir2 = self.lane_curv(right_curve)
-                frame2 = self.draw_curve(frame2, right_curve, right_f)
-            else:
-                #No lanes were detected
-                #Do something?
-                pass
+                all_pts = left_f + right_f
+                c = self.fit_curve(all_pts)
+                frame2 = self.draw_curve(frame2, c, all_pts)
             
+            
+            else:
+                if len(left_curve):
+                    curve1, dir1 = self.lane_curv(left_curve)
+                    frame2 = self.draw_curve(frame2, left_curve,  left_f)
+                if len(right_curve):
+                    curve2, dir2 = self.lane_curv(right_curve)
+                    frame2 = self.draw_curve(frame2, right_curve, right_f)
+                else:
+                    #No lanes were detected
+                    #Do something?
+                    pass
+                
             frame2 = cv2.rotate(frame2,cv2.ROTATE_90_COUNTERCLOCKWISE)
-            cv2.line(frame2, (self.width//2, 0),(self.width//2, self.height), (0, 255, 0), 3) #Middle Point
+            cv2.line(frame2, (self.width//2, 0),(self.width//2, self.height), (0, 255, 0), 1) #Middle Point
             frame2 = self.transform(frame2, self.Minv)
 
             # if left_f:

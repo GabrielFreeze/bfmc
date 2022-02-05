@@ -125,6 +125,7 @@ class CommandGeneratorProcess(WorkerProcess):
                     drive,steer = {},{}
 
                     l_dist,r_dist = inPs[0].recv()
+                    
                     # # print(f'Input:{x}, {dir}')
 
                     #TODO: Make this computation occur in the Lane Detection Class
@@ -151,7 +152,7 @@ class CommandGeneratorProcess(WorkerProcess):
                     angle = x * (20/(max_dist-min_dist))
 
                     print(f'Angle: {angle}')
-                    base = 5
+                    base = 10
                     if (l_dist,r_dist) == (0,0): #No lanes were detected
                         drive = {'action':'1',
                                  'speed': 0.00}
@@ -166,7 +167,7 @@ class CommandGeneratorProcess(WorkerProcess):
                             drive = {'action':'1',
                                     'speed': speed}
                             steer = {'action':'2',
-                                     'steerAngle': float(base * round(x*10/base)/10)}
+                                     'steerAngle': float(base * round(angle*10/base)/10)}
                     
 
                     # dir = "LEFT" if angle > 0 else "RIGHT"

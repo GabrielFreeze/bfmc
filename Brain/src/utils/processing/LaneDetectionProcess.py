@@ -44,7 +44,7 @@ class LaneDetectionProcess(WorkerProcess):
 
         lane = None
 
-        try: lane = Lane(frame.shape[1],frame.shape[0])
+        try: lane = Lane(frame.shape[1]//4,frame.shape[0]//4)
         except Exception as e: print(str(e))
 
 
@@ -57,7 +57,8 @@ class LaneDetectionProcess(WorkerProcess):
             l, r = 0,0
 
             #--> Processing of the image occurs here <--
-            # radius,dir = lane.get_radius(image)            
+            # radius,dir = lane.get_radius(image)        
+            image = cv2.resize(image,(image.shape[1]//4,image.shape[0]//4),cv2.INTER_AREA)    
             l,r = lane.get_offset(image)
 
 
@@ -67,4 +68,4 @@ class LaneDetectionProcess(WorkerProcess):
 
             #Send
             for outP in outPs:
-                outP.send([l,r])
+                outP.send([l*4,r*4])
