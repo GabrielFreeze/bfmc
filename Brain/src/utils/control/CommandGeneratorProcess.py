@@ -111,7 +111,7 @@ class CommandGeneratorProcess(WorkerProcess):
         speed = -1
         prev_speed = -2
         angle = 0
-        prev_angle = 0
+        prev_angle = -1
         inc = -15.0
         start = time.time()
         drive,steer = {},{}
@@ -163,11 +163,12 @@ class CommandGeneratorProcess(WorkerProcess):
 
                     else:
                             # if prev_speed != speed:
-                            speed = 0.00
+                            speed = 0.1
+                            angle_final = float(base * round(angle*10/base)/10)
                             drive = {'action':'1',
-                                    'speed': speed}
+                                    'speed': 0.0}
                             steer = {'action':'2',
-                                     'steerAngle': float(base * round(angle*10/base)/10)}
+                                    'steerAngle': angle_final}
                     
 
                     # dir = "LEFT" if angle > 0 else "RIGHT"
@@ -186,7 +187,11 @@ class CommandGeneratorProcess(WorkerProcess):
 
                     send([drive,steer])
                     time.sleep(0.01)
+
+                    # print(f'Current Angle: {angle_final}')
+                    # print(f'Old Angle: {prev_angle}')
                     prev_speed = speed
+                    # prev_angle = angle_final
                     
 
 

@@ -24,10 +24,10 @@ class Lane:
         self.wrp_x2 = self.width/2 + self.width/10
 
         self.warp_cut = 0.35
-        self.min_dist_lanes = 25
+        self.min_dist_lanes = 28
 
 
-        self.min_lane_pts = 20          #Minimum Number of Points a detected lane line should contain.
+        self.min_lane_pts = 5          #Minimum Number of Points a detected lane line should contain.
                                         #Less than that, then it is considered noise.
         self.shift = 20                 #The estimated distance in px between the 2 lanes. Used for lane inference
         self.MAX_RADIUS = float('inf')  #Largest possible lane curve radius
@@ -69,7 +69,7 @@ class Lane:
     def eq_hist(self, img): # Histogram normalization
         return cv2.equalizeHist(img)
 
-    def bin_thresh(self, img, p=91,c=30):
+    def bin_thresh(self, img, p=101,c=50):
         frame = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,p,c)
         # _,frame = cv2.threshold(img,param1,param2,cv2.THRESH_BINARY_INV)
         return frame
@@ -79,6 +79,9 @@ class Lane:
 
     def lanes_overlap(self, left, right):
         
+        if left == [] or right == []:
+            return False
+
         #Calculate average point in left and right
         lx = np.mean(np.array([x for (x,y) in left],dtype=np.int32))
         ly = np.mean(np.array([y for (x,y) in left],dtype=np.int32))
@@ -89,7 +92,7 @@ class Lane:
         #Calculate euclidian distance between average points
         dist = math.sqrt((lx-rx)**2 + (ly-ry)**2)
 
-        # print(f'Average Distance between lanes: {dist}')
+        print(f'Average Distance between lanes: {dist}')
 
 
         
@@ -158,7 +161,7 @@ class Lane:
             print(str(e))
             return [],[]
 
-    def filter_points(self, pts, dev=1.6):
+    def filter_points(self, pts, dev=0.75):
         '''
         pts: A list of coordinates (x,y)
         dev: The maximum deviation the filtered points should have
@@ -564,15 +567,22 @@ class Lane:
 
             
             if left:
+                print(f'Prev Left:{len(left)}')
                 left_f = self.filter_points(left)
+                print(f'New Left:{len(left_f)}')
                 # if left_f: 
                 #     left_curve = self.fit_curve(left_f)
                     
             if right:
+                print(f'Prev Right:{len(right)}')
                 right_f = self.filter_points(right)
+                print(f'New Right:{len(right_f)}')
                 # if right_f:
                 #     right_curve = self.fit_curve(right_f)
             
+
+            
+
             if self.lanes_overlap(left_f, right_f) == True:
                 #The detected lanes are incorrect
                 #Consider all lane points and see if the average point is on the left or right
@@ -647,7 +657,6 @@ class Lane:
 
         try:
             left_f, right_f = [],[]
-            std_dev = 1.6
 
             if left:
                 left_f = self.filter_points(left)
