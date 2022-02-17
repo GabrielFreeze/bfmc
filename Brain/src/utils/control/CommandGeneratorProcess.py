@@ -99,13 +99,21 @@ class CommandGeneratorProcess(WorkerProcess):
                     outP.send(cmd)
 
 
-        self.command = {
+        activate_pid = {
             'action' : '4',
             'activate' : True
         }
 
-        for outP in outPs:
-            outP.send(self.command)
+        # control_pid = {
+        #     'action' : '6',
+        #     'kp': 0.115000,
+        #     'ki': 0.810000,
+        #     'kd': 0.000222,
+        #     'tf': 0.040000,
+        # }
+
+        # send([activate_pid, control_pid])
+        send([activate_pid])
 
 
         speed = -1
@@ -117,6 +125,9 @@ class CommandGeneratorProcess(WorkerProcess):
         drive,steer = {},{}
         inputs = []
 
+
+
+        #Original Lane Detection
         try:
             while True:
                 #Receive lane detection information.
@@ -196,9 +207,56 @@ class CommandGeneratorProcess(WorkerProcess):
 
 
                 except Exception as f: print(f)
-                           
-
         except Exception as e: print(e)
 
+
+        #Alternative Lane Detection
+        prev_angle = 0
+        final_angle = 0
+        try:
+            while True:
+                #Receive lane detection information.
+                try:
+                    max_dist, min_dist = 100,30
+                    drive,steer = {},{}
+
+                    angle = inPs[0].recv()
+                    final_angle = angle[0] * (2/6)
+
+                    if final_angle > 20: final_angle = 20
+                    elif final_angle < -20: final_angle = -20
+                    
+
+                    # final_angle = stabilize_steering_angle(prev_angle, final_angle, 2)
+
+                    print(final_angle)
+
+                    drive = {'action':'1',
+                             'speed': 0.1}
+                    steer = {'action':'2',
+                             'steerAngle': float(final_angle)}
+
+                    
+
+                    if time.time() - start > 30:
+                        print('Time Limit Reached')
+                        drive = {'action':'1',
+                                 'speed': 0.0}
+                        steer = {'action':'2',
+                                 'steerAngle': float(final_angle)}
+
+
+                    send([drive,steer])
+                    time.sleep(0.01)
+
+                    # print(f'Current Angle: {angle_final}')
+                    # print(f'Old Angle: {prev_angle}')
+                    prev_angle = final_angle
+                    # prev_angle = angle_final
+                    
+
+
+                except Exception as f: print(f)
+        except Exception as e: print(e)
 
         self.server_socket.close()

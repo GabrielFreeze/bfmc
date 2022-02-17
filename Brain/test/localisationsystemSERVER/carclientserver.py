@@ -131,7 +131,7 @@ class CarClientHandler(socketserver.BaseRequestHandler):
         msg_bytes = msg_str.encode('utf-8')
         signature = sign_data(self.server.private_key, msg_str)
 
-        # Authentication of se`rver        
+        # Authentication of server        
         self.request.sendall(msg_bytes)
         self.request.sendall(signature)
         time.sleep(0.1)

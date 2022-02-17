@@ -101,12 +101,20 @@ class LocalisationSystem(Thread):
 if __name__ == '__main__':
     LocalisationSystem = LocalisationSystem(2)
     LocalisationSystem.start()
-    
+        
     time.sleep(5)
     while True:
         try:
-            coora = LocalisationSystem.coor()
-            print(LocalisationSystem.ID(), coora['timestamp'], coora['coor'][0], coora['coor'][1])
+            coord = LocalisationSystem.coor()
+            timestamp = coord['timestamp']
+            x = coord['coor'][0].real
+            y = coord['coor'][0].imag
+
+            x = round(x,2)
+            y = round(y,2)
+            
+            
+            print(f'ID: {LocalisationSystem.ID()}\nTimestamp: {timestamp}\nPosition: {x,y}')
             time.sleep(1)
         except KeyboardInterrupt:
             break

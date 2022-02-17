@@ -7,7 +7,7 @@ import copy
 dir_path = os.path.dirname(os.path.realpath(__file__))+'/'
 
 class Lane:
-    def __init__(self, width, height, x_scl=0.07, y_scl=0.49):
+    def __init__(self, width, height, x_scl=0.07, y_scl=0.37):
         self.width = width
         self.height = height
 
@@ -23,8 +23,8 @@ class Lane:
         self.wrp_x1 = self.width/2 - self.width/10
         self.wrp_x2 = self.width/2 + self.width/10
 
-        self.warp_cut = 0.35
-        self.min_dist_lanes = 28
+        self.warp_cut = 0.12
+        self.min_dist_lanes = 10
 
 
         self.min_lane_pts = 5          #Minimum Number of Points a detected lane line should contain.
@@ -111,6 +111,69 @@ class Lane:
         _,mask = cv2.threshold(mask,0,255,cv2.THRESH_BINARY_INV)
         return cv2.bitwise_and(img, mask)
 
+    def average_slope_intercept(self, frame, line_segments):
+        """
+        This function combines line segments into one or two lane lines
+        If all line slopes are < 0: then we only have detected left lane
+        If all line slopes are > 0: then we only have detected right lane
+        """
+        lane_lines = []
+        if line_segments is None:
+            return lane_lines
+
+        height, width = self.height, self.width
+        left_fit = []
+        right_fit = []
+
+        boundary = 1/3
+        left_region_boundary = width * (1 - boundary)  # left lane line segment should be on left 2/3 of the screen
+        right_region_boundary = width * boundary # right lane line segment should be on left 2/3 of the screen
+
+        for line_segment in line_segments:
+            for x1, y1, x2, y2 in line_segment:
+                if x1 == x2:
+                    continue
+
+                fit = np.polyfit((x1, x2), (y1, y2), 1)
+                slope = fit[0]
+                intercept = fit[1]
+                if slope < 0:
+                    if x1 < left_region_boundary and x2 < left_region_boundary:
+                        left_fit.append((slope, intercept))
+                else:
+                    if x1 > right_region_boundary and x2 > right_region_boundary:
+                        right_fit.append((slope, intercept))
+
+        left_fit_average = np.average(left_fit, axis=0)
+        if len(left_fit) > 0:
+            lane_lines.append(self.make_points(frame, left_fit_average))
+
+        right_fit_average = np.average(right_fit, axis=0)
+        if len(right_fit) > 0:
+            lane_lines.append(self.make_points(frame, right_fit_average))
+
+
+        return lane_lines
+
+    def make_points(self, frame, line):
+        height, width = frame.shape
+        slope, intercept = line
+        y1 = height  # bottom of the frame
+        y2 = int(y1 * 1 / 2)  # make points from middle of the frame down
+
+        # bound the coordinates within the frame
+        x1 = max(-width, min(2 * width, int((y1 - intercept) / slope)))
+        x2 = max(-width, min(2 * width, int((y2 - intercept) / slope)))
+        return [[x1, y1, x2, y2]]
+
+    def display_lines(self, frame, lines, line_color=(0, 255, 0), line_width=2):
+        line_image = np.zeros_like(frame)
+        if lines is not None:
+            for line in lines:
+                for x1, y1, x2, y2 in line:
+                    cv2.line(line_image, (x1, y1), (x2, y2), line_color, line_width)
+        line_image = cv2.addWeighted(frame, 0.8, line_image, 1, 1)
+        return line_image
     def get_lanes(self, edges):
         '''
             edges: A binary image of the result of a canny edge detection. 
@@ -707,6 +770,119 @@ class Lane:
         except Exception as e: 
             print(str(e))
             return (0,False)
+
+    def get_offset_new(self, frame_org):
+
+        frame = self.set_gray(frame_org)
+
+        frame = self.bin_thresh(frame, 61, 92)
+        frame = self.block_front(frame)
+
+        warped_frame = self.get_roi(frame)
+
+        # frame2 = frame_org.copy()
+        
+        canny_edges = self.canny_edge(warped_frame)
+        # lines = self.detect_line_segments(canny_edges)
+
+        lines = cv2.HoughLinesP(canny_edges, 1, np.pi/180, 2, 
+                                        np.array([]))
+ 
+       
+        lines2 = []
+        # lines = cv2.HoughLines(canny_edges, 1, np.pi / 180, min_threshold)
+        # print(lines)
+        if lines is not None:
+            for l in lines:
+                pt1 = (l[0][0],l[0][1])
+                pt2 = (l[0][2],l[0][3])
+                
+                if (pt1[0]-pt2[0]) != 0:
+                    m = (pt1[1]-pt2[1])/(pt1[0]-pt2[0])
+
+                    if not (-0.5 < m < 0.5):
+                        lines2.append(l)
+
+
+
+        # if lines is not None:
+        #     for l in lines:
+        #         rho = l[0][0]
+        #         theta = l[0][1]
+        #         a = math.cos(theta)
+        #         b = math.sin(theta)
+        #         x0 = a * rho
+        #         y0 = b * rho
+        #         pt1 = (int(x0 + 1000*(-b)), int(y0 + 1000*(a)))
+        #         pt2 = (int(x0 - 1000*(-b)), int(y0 - 1000*(a)))
+
+        #         lines2.append([pt1[0],pt1[1],pt2[0],pt2[1]])
+
+        # print(lines2)
+        lines = lines2
+                    
+
+        lanes = self.average_slope_intercept(frame, lines)
+
+
+        if len(lanes) == 2:
+            _, _, left_x2, _ = lanes[0][0]
+            _, _, right_x2, _ = lanes[1][0]
+            mid = int(self.width / 2)
+            x_offset = (left_x2 + right_x2) / 2 - mid
+            y_offset = int(self.height / 2)
+        elif len(lanes) == 1:
+            x1, _, x2, _ = lanes[0][0]
+            x_offset = x2 - x1
+            y_offset = int(self.height / 2)
+
+
+        angle_to_mid_deg = 0
+
+        if len(lanes) != 0:
+            angle_to_mid_radian = math.atan(x_offset / y_offset)  # angle (in radian) to center vertical line
+            angle_to_mid_deg = int(angle_to_mid_radian * 180.0 / math.pi)  # angle (in degrees) to center vertical line
+            
+        
+        return angle_to_mid_deg
+
+    def vis_new(self, frame_org):
+
+        frame = self.set_gray(frame_org)
+
+        frame = self.bin_thresh(frame, 61, 92)
+        frame = self.block_front(frame)
+
+        warped_frame = self.get_roi(frame)
+
+        frame2 = frame_org.copy()
+        
+        canny_edges = self.canny_edge(warped_frame)
+        lines = cv2.HoughLinesP(canny_edges, 1, np.pi/180, 10, 
+                                        np.array([]))
+        
+        lines2 = []
+
+        if lines is not None:
+            for l in lines:
+                pt1 = (l[0][0],l[0][1])
+                pt2 = (l[0][2],l[0][3])
+                
+                if (pt1[0]-pt2[0]) != 0:
+                    m = (pt1[1]-pt2[1])/(pt1[0]-pt2[0])
+
+                    if not (-0.5 < m < 0.5):
+                        lines2.append(l)
+                        cv2.line(frame2, pt1, pt2, (0,0,255), 3, cv2.LINE_AA)
+
+        lines = lines2        
+
+        lanes = self.average_slope_intercept(frame, lines)
+
+        frame2 = self.display_lines(frame2, lanes)
+
+        return frame2
+
 
 
 def show_image(name, img, size=0.35):
