@@ -67,12 +67,12 @@ class LaneDetectionVis(WorkerProcess):
 
             #Send
             image = cv2.resize(image,(image.shape[1]//4,image.shape[0]//4),cv2.INTER_AREA)   
-            # image = lane.vis(image)
-            image = lane.set_gray(image)
-            image = lane.bin_thresh(image)
-            image = lane.block_front(image)
-            image = lane.get_roi(image)
-            image = lane.transform(image, lane.M)
+            image = lane.vis_new(image)
+            # image = lane.set_gray(image)
+            # image = lane.bin_thresh(image)
+            # image = lane.block_front(image)
+            # image = lane.get_roi(image)
+            # image = lane.transform(image, lane.M)
             image = cv2.resize(image,(image.shape[1]*4,image.shape[0]*4),cv2.INTER_AREA)
 
             for outP in outPs:

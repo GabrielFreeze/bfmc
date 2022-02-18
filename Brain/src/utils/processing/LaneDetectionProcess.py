@@ -59,7 +59,7 @@ class LaneDetectionProcess(WorkerProcess):
             #--> Processing of the image occurs here <--
             # radius,dir = lane.get_radius(image)        
             image = cv2.resize(image,(image.shape[1]//4,image.shape[0]//4),cv2.INTER_AREA)    
-            l,r = lane.get_offset(image)
+            angle = lane.get_offset_new(image)
 
 
             # F -> Left
@@ -68,4 +68,4 @@ class LaneDetectionProcess(WorkerProcess):
 
             #Send
             for outP in outPs:
-                outP.send([l*4,r*4])
+                outP.send([angle])

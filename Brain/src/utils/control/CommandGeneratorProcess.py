@@ -104,13 +104,13 @@ class CommandGeneratorProcess(WorkerProcess):
             'activate' : True
         }
 
-        # control_pid = {
-        #     'action' : '6',
-        #     'kp': 0.115000,
-        #     'ki': 0.810000,
-        #     'kd': 0.000222,
-        #     'tf': 0.040000,
-        # }
+        control_pid = {
+            'action' : '6',
+            'kp': 0.000000,
+            'ki': 0.000000,
+            'kd': 0.000000,
+            'tf': 0.040000,
+        }
 
         # send([activate_pid, control_pid])
         send([activate_pid])
@@ -127,87 +127,87 @@ class CommandGeneratorProcess(WorkerProcess):
 
 
 
-        #Original Lane Detection
-        try:
-            while True:
-                #Receive lane detection information.
-                try:
-                    max_dist, min_dist = 100,30
-                    drive,steer = {},{}
+        # #Original Lane Detection
+        # try:
+        #     while True:
+        #         #Receive lane detection information.
+        #         try:
+        #             max_dist, min_dist = 100,30
+        #             drive,steer = {},{}
 
-                    l_dist,r_dist = inPs[0].recv()
+        #             l_dist,r_dist = inPs[0].recv()
                     
-                    # # print(f'Input:{x}, {dir}')
+        #             # # print(f'Input:{x}, {dir}')
 
-                    #TODO: Make this computation occur in the Lane Detection Class
-                    if l_dist and r_dist:
-                        if l_dist > max_dist: l_dist = max_dist
-                        if r_dist > max_dist: r_dist = max_dist
+        #             #TODO: Make this computation occur in the Lane Detection Class
+        #             if l_dist and r_dist:
+        #                 if l_dist > max_dist: l_dist = max_dist
+        #                 if r_dist > max_dist: r_dist = max_dist
 
-                        if l_dist < min_dist: l_dist = min_dist
-                        if r_dist < min_dist: r_dist = min_dist
+        #                 if l_dist < min_dist: l_dist = min_dist
+        #                 if r_dist < min_dist: r_dist = min_dist
                     
-                    elif l_dist and not r_dist:
-                        if l_dist > max_dist: l_dist = max_dist
-                        if l_dist < min_dist: l_dist = min_dist
-                        r_dist = max_dist
-                    elif r_dist and not l_dist:
-                        if r_dist > max_dist: r_dist = max_dist
-                        if r_dist < min_dist: r_dist = min_dist
-                        l_dist = max_dist
+        #             elif l_dist and not r_dist:
+        #                 if l_dist > max_dist: l_dist = max_dist
+        #                 if l_dist < min_dist: l_dist = min_dist
+        #                 r_dist = max_dist
+        #             elif r_dist and not l_dist:
+        #                 if r_dist > max_dist: r_dist = max_dist
+        #                 if r_dist < min_dist: r_dist = min_dist
+        #                 l_dist = max_dist
 
-                    print(f'l_dist: {l_dist},r_dist: {r_dist}')
-                    x =  r_dist - l_dist
+        #             print(f'l_dist: {l_dist},r_dist: {r_dist}')
+        #             x =  r_dist - l_dist
 
-                    print(f'x: {x}')
-                    angle = x * (20/(max_dist-min_dist))
+        #             print(f'x: {x}')
+        #             angle = x * (20/(max_dist-min_dist))
 
-                    print(f'Angle: {angle}')
-                    base = 10
-                    if (l_dist,r_dist) == (0,0): #No lanes were detected
-                        drive = {'action':'1',
-                                 'speed': 0.00}
-                        steer = {'action':'2',
-                                 'steerAngle': 0.00}
-                        angle = 0.00
-                        speed = 0.00
+        #             print(f'Angle: {angle}')
+        #             base = 10
+        #             if (l_dist,r_dist) == (0,0): #No lanes were detected
+        #                 drive = {'action':'1',
+        #                          'speed': 0.00}
+        #                 steer = {'action':'2',
+        #                          'steerAngle': 0.00}
+        #                 angle = 0.00
+        #                 speed = 0.00
 
-                    else:
-                            # if prev_speed != speed:
-                            speed = 0.1
-                            angle_final = float(base * round(angle*10/base)/10)
-                            drive = {'action':'1',
-                                    'speed': 0.0}
-                            steer = {'action':'2',
-                                    'steerAngle': angle_final}
-                    
-
-                    # dir = "LEFT" if angle > 0 else "RIGHT"
-                    # # print(f'{x} -> {dir}: {angle}\n')
-
-
-                    # drive = {'action':'1',
-                    #          'speed': 0.07}
-
-                    # if time.time() - start > 15:
-                    #     print('Time Limit Reached')
-                    #     drive = {'action':'1',
-                    #              'speed': 0.0}
-                    #     steer = {'action':'2',
-                    #              'steerAngle': 0.00}
-
-                    send([drive,steer])
-                    time.sleep(0.01)
-
-                    # print(f'Current Angle: {angle_final}')
-                    # print(f'Old Angle: {prev_angle}')
-                    prev_speed = speed
-                    # prev_angle = angle_final
+        #             else:
+        #                     # if prev_speed != speed:
+        #                     speed = 0.1
+        #                     angle_final = float(base * round(angle*10/base)/10)
+        #                     drive = {'action':'1',
+        #                             'speed': 0.0}
+        #                     steer = {'action':'2',
+        #                             'steerAngle': angle_final}
                     
 
+        #             # dir = "LEFT" if angle > 0 else "RIGHT"
+        #             # # print(f'{x} -> {dir}: {angle}\n')
 
-                except Exception as f: print(f)
-        except Exception as e: print(e)
+
+        #             # drive = {'action':'1',
+        #             #          'speed': 0.07}
+
+        #             # if time.time() - start > 15:
+        #             #     print('Time Limit Reached')
+        #             #     drive = {'action':'1',
+        #             #              'speed': 0.0}
+        #             #     steer = {'action':'2',
+        #             #              'steerAngle': 0.00}
+
+        #             send([drive,steer])
+        #             time.sleep(0.01)
+
+        #             # print(f'Current Angle: {angle_final}')
+        #             # print(f'Old Angle: {prev_angle}')
+        #             prev_speed = speed
+        #             # prev_angle = angle_final
+                    
+
+
+        #         except Exception as f: print(f)
+        # except Exception as e: print(e)
 
 
         #Alternative Lane Detection
@@ -217,7 +217,6 @@ class CommandGeneratorProcess(WorkerProcess):
             while True:
                 #Receive lane detection information.
                 try:
-                    max_dist, min_dist = 100,30
                     drive,steer = {},{}
 
                     angle = inPs[0].recv()
@@ -232,13 +231,13 @@ class CommandGeneratorProcess(WorkerProcess):
                     print(final_angle)
 
                     drive = {'action':'1',
-                             'speed': 0.1}
+                             'speed': 0.00}
                     steer = {'action':'2',
                              'steerAngle': float(final_angle)}
 
                     
 
-                    if time.time() - start > 30:
+                    if time.time() - start > 10:
                         print('Time Limit Reached')
                         drive = {'action':'1',
                                  'speed': 0.0}

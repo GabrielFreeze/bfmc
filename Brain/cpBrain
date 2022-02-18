@@ -1,1 +1,1 @@
-scp -r ~/Documents/bfmc/Brain pi@192.168.0.135:/home/pi/
+scp -r ~/Documents/bfmc/Brain pi@192.168.43.82:/home/pi/
